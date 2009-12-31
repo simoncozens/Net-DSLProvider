@@ -1,0 +1,12 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+lib/Net/DSLProvider.pm
+lib/Net/DSLProvider/Cerberus/soap.pm
+lib/Net/DSLProvider/Cerberus.pm
+lib/Net/DSLProvider/Enta.pm
+lib/Net/DSLProvider/Murphx.pm
+t/00-load.t
+t/pod-coverage.t
+t/pod.t
