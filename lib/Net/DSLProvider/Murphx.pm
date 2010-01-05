@@ -27,10 +27,9 @@ my %formats = (
             }
         }, customer => { 
             (map { $_ => "text" } qw/title forename surname company building
-                street city county/),
-            "sub-premise" => "text", postcode => "postcode", 
-            telephone => "phone", mobile => "phone", fax => "phone",
-            email => "email"
+                street city county sub-premise/),
+            postcode => "postcode", telephone => "phone", 
+            mobile => "phone", fax => "phone", email => "email"
         }
     }
 );
@@ -96,7 +95,63 @@ sub services_available {
         $services{$a->{a}->{'product-id'}->{content}} = 
             $a->{a}->{'first-date-text'}->{content};
     }
+    return %services;
+}
 
+=head2 order
+
+    $murphx->order(
+        # Customer details
+        forename => "Clara", surname => "Trucker", 
+        building => "123", street => "Pigeon Street", city => "Manchester", 
+        county => "Greater Manchester", postcode => "M1 2JX",
+        telephone => "01614960213", 
+        # Order details
+        clid => "01614960213", "client-ref" => "claradsl", 
+        "prod-id" => $product, crd => $leadtime, username => "claraandhugo",
+        password => "skyr153", "care-level" => "standard", 
+        realm => "surfdsl.net"
+    );
+
+Submits an order for DSL to be provided to the specified phone line.
+Note that all the parameters above must be supplied. CRD is the
+requested delivery date in YYYY-mm-dd format; you are responsible for
+computing dates after the minimum lead time. The product ID should have
+been supplied to you by Murphx.
+
+Additional parameters are listed below and described in the integration
+guide:
+
+    title street company mobile email fax sub-premise fixed-ip routed-ip
+    allocation-size hardware-product max-interleaving test-mode
+    inclusive-transfer
+
+=cut
+
+sub order {
+    my ($self, $data_in) = @_;
+    # We expect it "flat" and arrange it into the right blocks as we check it
+    my $data = {};
+    for (qw/forename surname building city county postcode telephone/) {
+        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
+        $data->{customer}{$_} = $data_in->{$_};
+    }
+    defined $data_in->{$_} and $data->{customer}{$_} = $data_in->{$_} 
+        for qw/title street company mobile email fax sub-premise/;
+
+    for (qw/clid client-ref prod-id crd username/) {
+        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
+        $data->{order}{$_} = $data_in->{$_};
+    }
+
+    for (qw/password realm care-level/) {
+        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
+        $data->{order}{attributes}{$_} = $data_in->{$_};
+    }
+    defined $data_in->{$_} and $data->{order}{attributes}{$_} = $data_in->{$_} 
+        for qw/fixed-ip routed-ip allocation-size hardware-product
+            max-interleaving test-mode inclusive-transfer/;
+    $self->make_request("provide", $data);
 }
 
 1;
