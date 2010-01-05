@@ -3,12 +3,38 @@ use HTML::Entities qw(encode_entities_numeric);
 use base 'Net::DSLProvider';
 use constant ENDPOINT => "https://xml.xps.murphx.com/";
 use LWP::UserAgent;
+use XML::Simple;
 my $ua = LWP::UserAgent->new;
 __PACKAGE__->mk_accessors(qw/clientid/);
 
 my %formats = (
     selftest => { sysinfo => { type => "text" }},
+    availability => { "" => { cli => "phone", detailed => "yesno",
+        ordertype => "text" } },
+    order_status => { "" => { "order-id" => "counting" }},
+    order_eventlog_history => { "" => { "order-id" => "counting" }},
+    provide => { 
+        order => {   
+            "client-ref" => "text", cli => "phone", "prod-id" => "counting",
+            crd => "date", username => "text", 
+            attributes => {
+                password => "password", realm => "text", 
+                "fixed-ip" => "yesno", "routed-ip" => "yesno", 
+                "allocation-size" => "counting", "care-level" => "text",
+                "hardware-product" => "counting", 
+                "max-interleaving" => "text", "test-mode" => "yesno",
+                "inclusive-transfer" => "counting"
+            }
+        }, customer => { 
+            (map { $_ => "text" } qw/title forename surname company building
+                street city county/),
+            "sub-premise" => "text", postcode => "postcode", 
+            telephone => "phone", mobile => "phone", fax => "phone",
+            email => "email"
+        }
+    }
 );
+
 
 sub request_xml {
     my ($self, $method, $data) = @_;
@@ -23,15 +49,21 @@ sub request_xml {
         </block>
 };
 
-    while (my ($block, $contents) = each %$data) {
-        if ($block) { $xml .= "<block name=\"$block\">\n"; }
-        for (keys %$contents) {
-            die "Couldn't find format for parameter '$_' in block '$block' in method '$method'" 
-            unless $formats{$method}{$block}{$_};
-            $xml .= qq{<a name="$_" format="$formats{$method}{$block}{$_}">}.encode_entities_numeric($contents->{$_})."</a>\n";
+    my $recurse;
+    $recurse = sub {
+        my ($format, $data) = @_;
+        while (my ($key, $contents) = each %$format) {
+            if (ref $contents eq "HASH") {
+                if ($key) { $xml .= "<block name=\"$key\">\n"; }
+                $recurse->($contents, $data->{$key});
+                if ($key) { $xml .= "</block>\n"; }
+            } else {
+                $xml .= qq{<a name="$key" format="$contents">}.encode_entities_numeric($data->{$key})."</a>\n" 
+                if $data->{$key};
+            }
         }
-        if ($block) { $xml .= "</block>\n"; }
-    }
+    };
+    $recurse->($formats{$method}, $data); 
     $xml .= "</Request>\n";
     return $xml;
 }
@@ -45,7 +77,26 @@ sub make_request {
     if ($self->debug) { warn "Sending request: \n".$request->as_string;}
     my $resp = $ua->request($request);
     die "Request for Murphx method $method failed: " . $resp->message if $resp->is_error;
-    return $resp->content;
+    my $resp_o = XMLin($resp->content);
+    if ($resp_o->{status}{no} > 0) { die  $resp_o->{status}{text} };
+    return $resp_o;
+}
+
+sub services_available {
+    my ($self, $number) = @_;
+    my $response = $self->make_request("availability", { 
+        cli => $number, detailed => "N", ordertype => "migrate" 
+    });
+    if ( $response->{block}->{availability}->{block}->{exchange}->{a}->{name}->{content} eq 'POPLAR' ) {
+        die "Services not available at POPLAR exchange due to BTO capacity issues"
+    }
+
+    my %services;
+    while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
+        $services{$a->{a}->{'product-id'}->{content}} = 
+            $a->{a}->{'first-date-text'}->{content};
+    }
+
 }
 
 1;
