@@ -108,6 +108,8 @@ Gets order history
 Returns an array, each element of which is a hash showing the next update in date
 sorted order. The hash keys are date, name and value.
 
+=cut
+
 sub order_eventlog_history {
     my ($self, $order) = @_;
     return undef unless $order;
