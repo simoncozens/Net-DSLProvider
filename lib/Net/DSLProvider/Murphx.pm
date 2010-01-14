@@ -99,6 +99,38 @@ sub services_available {
     return %services;
 }
 
+=head2 order_status
+
+    $murphx->order_status( "order-id" => 12345 );
+
+Get's status of an order specified by "order-id" from Murphx
+
+Returns a hash containing a hash order and a hash customer
+The order hash contains:
+    order-id, service-id, client-ref, order-type, cli, service-type, service,
+    username, status, start, finish, last-update
+
+The customer hash contains:
+    forename, surname, address, city, county, postcode, telephone, building
+
+=cut
+
+sub order_status {
+    my ($self, $order) = @_;
+    return undef unless $order;
+    my $response = $self->make_request("order_status", {
+        "order-id" => $order
+        });
+
+    my %order = ();
+    foreach (keys %{$response->{block}->{order}->{a}} ) {
+        $order{order}{$_} = $response->{block}->{order}->{a}->{$_}->{content};
+        }
+    foreach (keys %{$response->{block}->{customer}->{a}} ) {
+        $order{customer}{$_} = $response->{block}->{customer}->{a}->{$_}->{content};
+        }
+    return %order;
+}
 
 =head2 service_details 
 
@@ -106,7 +138,7 @@ sub services_available {
 
 Obtains details of the service identified by "service-id" from Murphx
 
-Details returned include:
+Returns a hash with details including (but not limited to):
     activation-date, cli, care-level, technology-type, service-id
     username, password, live, product-name, ip-address, product-id
     cidr
