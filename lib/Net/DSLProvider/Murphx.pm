@@ -13,6 +13,7 @@ my %formats = (
         ordertype => "text" } },
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
+    service_details => {"" => { "service-id" => "counting" }},
     provide => { 
         order => {   
             "client-ref" => "text", cli => "phone", "prod-id" => "counting",
@@ -86,9 +87,6 @@ sub services_available {
     my $response = $self->make_request("availability", { 
         cli => $number, detailed => "N", ordertype => "migrate" 
     });
-    if ( $response->{block}->{availability}->{block}->{exchange}->{a}->{name}->{content} eq 'POPLAR' ) {
-        die "Services not available at POPLAR exchange due to BTO capacity issues"
-    }
 
     my %services;
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
@@ -97,6 +95,35 @@ sub services_available {
     }
     return %services;
 }
+
+
+=head2 service_details 
+
+    $murphx->service_details( "service-id" => 12345 );
+
+Obtains details of the service identified by "service-id" from Murphx
+
+Details returned include:
+    activation-date, cli, care-level, technology-type, service-id
+    username, password, live, product-name, ip-address, product-id
+    cidr
+
+=cut
+
+sub service_details {
+    my ($self, $service) = @_;
+    return undef unless $service;
+    my $response = $self->make_request("service_details", {
+        "service-id" => $service, "detailed" => 'Y'
+        });
+
+    my %details = ();
+    foreach (keys %{$response->{block}->{a}} ) {
+        $details{$_} = $response->{block}->{a}->{$_}->{content};
+        }
+    return %details;
+}
+
 
 =head2 order
 
