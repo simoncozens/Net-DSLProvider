@@ -99,6 +99,35 @@ sub services_available {
     return %services;
 }
 
+=head2 order_eventlog_history
+    
+    $murphx->order_eventlog_history( "order-id" => 12345 );
+
+Gets order history
+
+Returns an array, each element of which is a hash showing the next update in date
+sorted order. The hash keys are date, name and value.
+
+sub order_eventlog_history {
+    my ($self, $order) = @_;
+    return undef unless $order;
+    my $response = $self->make_request("order_eventlog_history", { "order-id" => $order });
+
+    my @history = ();
+
+    while ( my $a = shift @{$response->{block}{block}} ) {
+        foreach (keys %{$a}) {
+            my %u = ();
+            $u{date} = $a->{'a'}->{'date'}->{'content'};
+            $u{name} = $a->{'a'}->{'name'}->{'content'};
+            $u{value} = $a->{'a'}->{'value'}->{'content'};
+
+            push(@history, \%u);
+        }
+    }
+    return @history;
+}
+
 =head2 order_status
 
     $murphx->order_status( "order-id" => 12345 );
