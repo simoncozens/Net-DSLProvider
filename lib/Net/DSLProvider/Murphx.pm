@@ -157,6 +157,8 @@ sub requestmac {
     return %mac;
 }
 
+sub order_history { goto &order_eventlog_history }
+
 =head2 order_eventlog_history
     
     $murphx->order_eventlog_history( "order-id" => 12345 );
