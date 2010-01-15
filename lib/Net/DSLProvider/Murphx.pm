@@ -14,6 +14,7 @@ my %formats = (
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
     service_details => {"" => { "service-id" => "counting" }},
+    requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     provide => { 
         order => {   
             "client-ref" => "text", cli => "phone", "prod-id" => "counting",
@@ -97,6 +98,35 @@ sub services_available {
             $a->{a}->{'first-date-text'}->{content};
     }
     return %services;
+}
+
+=head2 requestmac
+
+    $murphx->requestmac( "service-id" => 12345, "reason" => "EU wishes to change ISP" );
+
+Obtains a MAC for the given service You must pass the service-id. The "reason" parameter
+is optional.
+
+Returns a hash comprising: mac expiry-date
+
+=cut
+
+sub requestmac {
+    my ($self, $service, $reason) = @_;
+    return undef unless $service;
+
+    $reason = "EU wishes to change ISP" unless $reason;
+
+    my $response = $self->make_request("requestmac", {
+        "service-id" => $service, "reason" => $reason
+    });
+
+    my %mac = ();
+
+    $mac{mac} = $response->{a}->{mac}->{content};
+    $mac{"expiry-date"} = $response->{a}->{"expiry-date"}->{content};
+
+    return %mac;
 }
 
 =head2 order_eventlog_history
