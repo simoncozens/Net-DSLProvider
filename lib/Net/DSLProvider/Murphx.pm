@@ -15,6 +15,8 @@ my %formats = (
     order_eventlog_history => { "" => { "order-id" => "counting" }},
     service_details => {"" => { "service-id" => "counting" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
+    cease => {"" => { "service-id" => "counting", "reason" => "text",
+        "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
     provide => { 
         order => {   
             "client-ref" => "text", cli => "phone", "prod-id" => "counting",
@@ -98,6 +100,32 @@ sub services_available {
             $a->{a}->{'first-date-text'}->{content};
     }
     return %services;
+}
+
+=head2 cease
+
+    $murphx->cease( "service-id" => 12345, "reason" => "This service is no longer required"
+        "client-ref" => "ABX129", "crd" => "1970-01-01", "accepts-charges" => 'Y' );
+
+Places a cease order to terminate the ADSL service completely. 
+
+Required parameters are : service-id, crd, client-ref
+
+Returns order-id which is the ID of the cease order for tracking purposes.
+
+=cut
+
+sub cease {
+    my ($self, $args) = @_;
+
+    return undef unless $args;
+    for (qw/service-id crd client-ref/) {
+        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        }
+
+    my $response = $self->make_request("cease", $args);
+
+    return $response->{a}->{"order-id"}->{content};
 }
 
 =head2 requestmac
