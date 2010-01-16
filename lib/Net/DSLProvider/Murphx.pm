@@ -16,6 +16,7 @@ my %formats = (
     service_details => {"" => { "service-id" => "counting" }},
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
+    service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
@@ -102,6 +103,46 @@ sub services_available {
             $a->{a}->{'first-date-text'}->{content};
     }
     return %services;
+}
+
+=head auth_log
+
+    $murphx->auth_log( "service-id" => '12345', "rows" => "5" );
+
+Alias for service_auth_log
+
+=cut
+
+sub auth_log { goto &service_auth_log; }
+
+=head service_auth_log
+
+    $murphx->service_auth_log( "service-id" => '12345', "rows" => "5" );
+
+Gets the last n rows, as specified in the rows parameter, of authentication log entries for the service
+
+Returns an array, each element of which is a hash containing:
+    auth-date, username, result and, if the login failed, error-message
+
+=cut
+
+sub service_auth_log {
+    my ($self, $args) = @_;
+    for (qw/service-id rows/) {
+        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("service_auth_log", $args);
+
+    my @auth = ();
+    while ( my $r = shift @{$response->{block}} ) {
+        my %a = ();
+        foreach ( keys %{$r->{block}->{a}} ) {
+            $a{$_} = $r->{block}->{a}->{$_}->{content};
+        }
+    push @auth, %a;
+
+    return @auth;
 }
 
 =head usage_summary 
