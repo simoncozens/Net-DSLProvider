@@ -130,12 +130,12 @@ sub cease {
 
 =head2 requestmac
 
-    $murphx->requestmac( "service-id" => 12345, "reason" => "EU wishes to change ISP" );
+    $murphx->requestmac( '12345', "EU wishes to change ISP" );
 
-Obtains a MAC for the given service You must pass the service-id. The "reason" parameter
-is optional.
+Obtains a MAC for the given service. Parameters are service-id and reason the customer
+wants a MAC. You must pass the service-id. The "reason" parameter is optional.
 
-Returns a hash comprising: mac expiry-date
+Returns a hash comprising: mac, expiry-date
 
 =cut
 
@@ -161,9 +161,9 @@ sub order_history { goto &order_eventlog_history }
 
 =head2 order_eventlog_history
     
-    $murphx->order_eventlog_history( "order-id" => 12345 );
+    $murphx->order_eventlog_history( '12345' );
 
-Gets order history
+Gets order history. Takes the order-id as input.
 
 Returns an array, each element of which is a hash showing the next update in date
 sorted order. The hash keys are date, name and value.
@@ -192,9 +192,9 @@ sub order_eventlog_history {
 
 =head2 order_status
 
-    $murphx->order_status( "order-id" => 12345 );
+    $murphx->order_status( '12345' );
 
-Get's status of an order specified by "order-id" from Murphx
+Get's status of an order. Input is the order-id from Murphx
 
 Returns a hash containing a hash order and a hash customer
 The order hash contains:
@@ -225,7 +225,7 @@ sub order_status {
 
 =head2 service_details 
 
-    $murphx->service_details( "service-id" => 12345 );
+    $murphx->service_details( '12345' );
 
 Obtains details of the service identified by "service-id" from Murphx
 
