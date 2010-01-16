@@ -14,6 +14,8 @@ my %formats = (
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
     service_details => {"" => { "service-id" => "counting" }},
+    service_usage_summary => {"" => { "service-id" => "counting", 
+        "year" => "counting", "month" => "text" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
@@ -102,12 +104,54 @@ sub services_available {
     return %services;
 }
 
+=head usage_summary 
+
+    $murphx->usage_summary( '12345', '2009', '01' );
+
+Alias for service_usage_summary()
+
+=cut 
+
+sub usage_summary { goto &service_usage_summary; }
+
+=head service_usage_summary
+
+    $murphx->service_usage_summary( '12345', '2009', '01' );
+
+Gets a summary of usage in the given month. Inputs are service-id, year, month.
+
+Returns a hash with the following fields:
+    year, month, username, total-sessions, total-session-time, total-input-octets,
+    total-output-octets
+
+Input octets are upload bandwidth. Output octets are download bandwidth.
+
+Be warned that the total-input-octets and total-output-octets fields returned appear
+to be MB rather than octets contrary to the Murphx documentation. 
+
+=cut
+
+sub service_usage_summary {
+    my ($self, $service, $year, $month) = @_;
+    return undef unless ( $service && $year && month );
+
+    my $response = $self->make_request("service_usage_summary", {
+        "service-id" => $service, "year" => $year, "month" => $month
+    });
+
+    my %usage = ();
+    foreach ( keys %{$response->{block}->{a}} ) {
+        $usage{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %usage;
+}
+
 =head2 cease
 
     $murphx->cease( "service-id" => 12345, "reason" => "This service is no longer required"
         "client-ref" => "ABX129", "crd" => "1970-01-01", "accepts-charges" => 'Y' );
 
-Places a cease order to terminate the ADSL service completely. 
+Places a cease order to terminate the ADSL service completely. Takes input as a hash.
 
 Required parameters are : service-id, crd, client-ref
 
@@ -157,7 +201,7 @@ sub requestmac {
     return %mac;
 }
 
-sub order_history { goto &order_eventlog_history }
+sub order_history { goto &order_eventlog_history; }
 
 =head2 order_eventlog_history
     
