@@ -14,16 +14,17 @@ my %formats = (
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
     order_eventlog_changes => { "" => { "date" => "datetime" }},
-    service_details => {"" => { "service-id" => "counting" }},
     woosh_request_oneshot => {"" => { "service-id" => "counting",
         "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
         fault-time" => "datetime" }},
     woosh_list => {"" => { "service-id" => "counting" }},
     woosh_response => {"" => { "woosh-id" => "counting" }},
     change_password => {"" => { "service-id" => "counting", "password" => "password" }},
+    service_details => {"" => { "service-id" => "counting" }},
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
     service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
+    service_eventlog_changes => {"" => { "start-date" => "datetime", "stop-date" => "datetime" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
@@ -223,7 +224,7 @@ sub woosh_list {
                 my %a = ();
                 $a{$_} = $b->{a}->{$_}->{content};
 
-                push @list, %a;
+                push @list, \%a;
             }
         }
     } else {
@@ -231,7 +232,7 @@ sub woosh_list {
             my %a = ();
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
 
-            push @list, %a;
+            push @list, \%a;
         }
     }
 
@@ -314,7 +315,7 @@ sub order_eventlog_changes {
                 my %a = ();
                 $a{$_}->$b->{a}->{$_}->{content};
 
-                push @updates, %a;
+                push @updates, \%a;
             }
         }
     } else {
@@ -322,7 +323,7 @@ sub order_eventlog_changes {
             my %a = ();
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
 
-            push @updates, %a;
+            push @updates, \%a;
         }
     }
     return @updates;
@@ -358,13 +359,21 @@ sub service_auth_log {
     my $response = $self->make_request("service_auth_log", $args);
 
     my @auth = ();
-    while ( my $r = shift @{$response->{block}} ) {
-        my %a = ();
-        foreach ( keys %{$r->{block}->{a}} ) {
-            $a{$_} = $r->{block}->{a}->{$_}->{content};
+    if ( ref $response->{block} eq "ARRAY" ) {
+        while ( my $r = shift @{$response->{block}} ) {
+            foreach ( keys %{$r->{block}->{a}} ) {
+                my %a = ();
+                $a{$_} = $r->{block}->{a}->{$_}->{content};
+                push @auth, \%a;
+            }
         }
-    push @auth, %a;
-
+    } else {
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            my %a = ();
+            $a{$_} = $r->{block}->{block}->{a}->{$_}->{content};
+            push @auth, \%a;
+        }
+    }
     return @auth;
 }
 
@@ -462,6 +471,53 @@ sub requestmac {
     return %mac;
 }
 
+=head service_history
+
+    $murphx->service_history( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
+
+Returns an array each element of which is a hash continaing the following data:
+    service-id order-id date name value
+
+=cut
+
+sub service_history { goto &service_eventlog_changes; }
+
+=head service_eventlog_changes
+
+    $murphx->service_eventlog_changes( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
+
+Returns an array each element of which is a hash continaing the following data:
+    service-id order-id date name value
+
+=cut
+
+sub service_eventlog_changes {
+    my ($self, $args) = @_;
+    for ( qw/ start-date stop-date /) {
+        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("service_eventlog_changes", $args);
+
+    my @changes = ();
+    if ( ref $response->{block}->{block} eq 'ARRAY' ) {
+        while ( my $a = shift @{$response->{block}->{block}} ) {
+            foreach (keys %{$a->{a}}) {
+                my %u = ();
+                $u{$_} = $a->{'a'}->{$_}->{content};
+                push(@changes, \%u);
+            }
+        }
+    } else {
+        foreach (keys $response->{block}->{block}->{a}) {
+            my %u = ();
+            $u{$_} = $response->{block}->{block}->{'a'}->{$_}->{content};
+            push(@changes, \%u);
+        }
+    }
+    return @changes;
+}
+
 sub order_history { goto &order_eventlog_history; }
 
 =head2 order_eventlog_history
@@ -482,16 +538,24 @@ sub order_eventlog_history {
 
     my @history = ();
 
-    while ( my $a = shift @{$response->{block}{block}} ) {
-        foreach (keys %{$a}) {
+    if ( ref $response->{block}->{block} eq 'ARRAY' ) {
+        while ( my $a = shift @{$response->{block}->{block}} ) {
+            foreach (keys %{$a->{a}}) {
+                my %u = ();
+                $u{$_} = $a->{'a'}->{$_}->{content};
+
+                push(@history, \%u);
+            }
+        }
+    } else {
+        foreach (keys $response->{block}->{block}->{a}) {
             my %u = ();
-            $u{date} = $a->{'a'}->{'date'}->{'content'};
-            $u{name} = $a->{'a'}->{'name'}->{'content'};
-            $u{value} = $a->{'a'}->{'value'}->{'content'};
+            $u{$_} = $response->{block}->{block}->{'a'}->{$_}->{content};
 
             push(@history, \%u);
         }
     }
+
     return @history;
 }
 
