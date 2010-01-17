@@ -13,6 +13,7 @@ my %formats = (
         ordertype => "text" } },
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
+    order_eventlog_changes => { "" => { "date" => "datetime" }},
     service_details => {"" => { "service-id" => "counting" }},
     woosh_request_oneshot => {"" => { "service-id" => "counting",
         "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
@@ -216,13 +217,24 @@ sub woosh_list {
     my $response = $self->make_request("woosh_list", { "service-id" => $service });
 
     my @list = ();
-    while ( my $b = shift @{$response->{block}{block}} ) {
-        foreach ( keys %{$b->{a}} ) {
-            my %a = ();
-            $a{$_} = $b->{a}->{$_}->{content};
+    if ( ref $response->{block}->{block} eq "ARRAY" ) {
+        while ( my $b = shift @{$response->{block}->{block}} ) {
+            foreach ( keys %{$b->{a}} ) {
+                my %a = ();
+                $a{$_} = $b->{a}->{$_}->{content};
+
+                push @list, %a;
+            }
         }
-        push @list, %a;
+    } else {
+        foreach ( keys %{$response->{block}->{block}->{a}} ) {
+            my %a = ();
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+
+            push @list, %a;
+        }
     }
+
     return @list;
 }
 
@@ -264,6 +276,56 @@ sub woosh_request_oneshot {
     my $response = $self->make_request("woosh_request_oneshot", $args);
 
     return $response->{a}->{"woosh-id"}->{content};
+}
+
+=head order_updates_since
+
+    $murphx->order_updates_since( "2007-02-01 16:10:05" );
+
+Alias to order_eventlog_changes
+
+=cut
+
+sub order_updates_since { goto &order_eventlog_changes; }
+
+=head order_eventlog_changes
+
+    $murphx->order_eventlog_changes( "2007-02-01 16:10:05" );
+
+Returns a list of events that have occurred on all orders since the provided date/time.
+
+The return is an date/time sorted array of hashes each of which contains the following fields:
+    order-id date name value
+
+=cut
+
+sub order_eventlog_changes {
+    my ($self, $time) = @_;
+    return undef unless $time;
+
+    my $response = $self->make_request("woosh_request_oneshot", {
+        "date" => $time });
+
+    my @updates = ();
+
+    if ( ref $response->{block}->{block} eq "ARRAY" ) {
+        while (my $b = shift @{$response->{block}->{block}} ) {
+            foreach ( keys %{$b->{a}} ) {
+                my %a = ();
+                $a{$_}->$b->{a}->{$_}->{content};
+
+                push @updates, %a;
+            }
+        }
+    } else {
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            my %a = ();
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+
+            push @updates, %a;
+        }
+    }
+    return @updates;
 }
 
 =head auth_log
