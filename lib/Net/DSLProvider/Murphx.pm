@@ -107,9 +107,6 @@ sub services_available {
     my $response = $self->make_request("availability", { 
         cli => $number, detailed => "N", ordertype => "migrate" 
     });
-    if ( $response->{block}->{availability}->{block}->{exchange}->{a}->{name}->{content} eq 'POPLAR' ) {
-        die "Services not available at POPLAR exchange due to BTO capacity issues"
-    }
 
     my %services;
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
