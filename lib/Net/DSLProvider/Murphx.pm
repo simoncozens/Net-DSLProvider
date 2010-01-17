@@ -26,7 +26,15 @@ my %formats = (
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
-    provide => { 
+    modify => {
+        order => {
+            "service-id" => "counting", "client-ref" => "text", "crd" => "date",
+            "prod-id" => "counting", "cli" => "phone",
+            attributes => { "care-level" => "text", "inclusive-transfer" => "counting",
+                "test-mode" => "yesno" },
+        }
+    },
+    order => { 
         order => {   
             "client-ref" => "text", cli => "phone", "prod-id" => "counting",
             crd => "date", username => "text", 
@@ -36,7 +44,8 @@ my %formats = (
                 "allocation-size" => "counting", "care-level" => "text",
                 "hardware-product" => "counting", 
                 "max-interleaving" => "text", "test-mode" => "yesno",
-                "inclusive-transfer" => "counting"
+                "mac" => "text", "losing-isp" => "text",
+                "inclusive-transfer" => "counting", "pstn-order-id" => "text"
             }
         }, customer => { 
             (map { $_ => "text" } qw/title forename surname company building
@@ -108,6 +117,30 @@ sub services_available {
             $a->{a}->{'first-date-text'}->{content};
     }
     return %services;
+}
+
+=head modify
+
+    $murphx->modify(
+        "service-id" => "12345", "client-ref" => "myref", "prod-id" => "1000",
+        "crd" => "2009-12-31", "care-level" => "standard" "inclusive-transfer" => "3",
+        "test-mode" = "N" );
+
+Modify the service specificed in service-id. Parameters are as per the Murphx documentation
+
+Returns order-id for the modify order.
+
+=cut
+
+sub modify {
+    my ($self, $args) = @_;
+    for (qw/ service-id client-ref myref prod-id crd care-level inclusive-transfer test-mode /) {
+        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("modify", $data);
+
+    return $response->{a}->{"order-id"}->{content};
 }
 
 =head change_password 
@@ -515,9 +548,21 @@ sub order {
         $data->{order}{attributes}{$_} = $data_in->{$_};
     }
     defined $data_in->{$_} and $data->{order}{attributes}{$_} = $data_in->{$_} 
-        for qw/fixed-ip routed-ip allocation-size hardware-product
-            max-interleaving test-mode inclusive-transfer/;
-    $self->make_request("provide", $data);
+        for qw/fixed-ip routed-ip allocation-size hardware-product pstn-order-id
+            max-interleaving test-mode inclusive-transfer mac losing-isp/;
+
+    my $response = undef;
+    if ( defined $data-in->{"mac"} && defined $data-in->{"losing-isp"} ) {
+        $response = $self->make_request("migrate", $data);
+    } else {
+        $response = $self->make_request("provide", $data);
+    }
+
+    my %order = ();
+    foreach ( keys %{$response->{a}} ) {
+        $order{$_} = $response->{a}->{$_}->{content};
+    }
+    return %order;
 }
 
 1;
