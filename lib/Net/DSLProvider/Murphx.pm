@@ -120,7 +120,7 @@ sub services_available {
     return %services;
 }
 
-=head modify
+=head2 modify
 
     $murphx->modify(
         "service-id" => "12345", "client-ref" => "myref", "prod-id" => "1000",
@@ -144,7 +144,7 @@ sub modify {
     return $response->{a}->{"order-id"}->{content};
 }
 
-=head change_password 
+=head2 change_password 
 
     $murphx->change_password( "service-id" => "12345", "password" => "secret" );
 
@@ -168,7 +168,7 @@ sub change_password {
     return 1;
 }
 
-=head woosh_response
+=head2 woosh_response
 
     $murphx->woosh_response( "12345" );
 
@@ -197,7 +197,7 @@ sub woosh_response {
     return %results;
 }
 
-=head woosh_list
+=head2 woosh_list
 
     $murphx->woosh_list( "12345" );
 
@@ -239,7 +239,7 @@ sub woosh_list {
     return @list;
 }
 
-=head request_woosh
+=head2 request_woosh
 
     $murphx->request_woosh( "service-id" => "12345", "fault-type" => "EPP",
         "has-worked" => "Y", "disruptive" => "Y", "fault-time" => "2007-01-04 15:33:00");
@@ -250,7 +250,7 @@ Alias to woosh_request_oneshot
 
 sub request_woosh { goto &woosh_request_oneshot; }
 
-=head woosh_request_oneshot
+=head2 woosh_request_oneshot
 
     $murphx->woosh_request_oneshot( "service-id" => "12345", "fault-type" => "EPP",
         "has-worked" => "Y", "disruptive" => "Y", "fault-time" => "2007-01-04 15:33:00");
@@ -279,7 +279,7 @@ sub woosh_request_oneshot {
     return $response->{a}->{"woosh-id"}->{content};
 }
 
-=head order_updates_since
+=head2 order_updates_since
 
     $murphx->order_updates_since( "2007-02-01 16:10:05" );
 
@@ -289,7 +289,7 @@ Alias to order_eventlog_changes
 
 sub order_updates_since { goto &order_eventlog_changes; }
 
-=head order_eventlog_changes
+=head2 order_eventlog_changes
 
     $murphx->order_eventlog_changes( "2007-02-01 16:10:05" );
 
@@ -327,7 +327,7 @@ sub order_eventlog_changes {
     return @updates;
 }
 
-=head auth_log
+=head2 auth_log
 
     $murphx->auth_log( "service-id" => '12345', "rows" => "5" );
 
@@ -337,7 +337,7 @@ Alias for service_auth_log
 
 sub auth_log { goto &service_auth_log; }
 
-=head service_auth_log
+=head2 service_auth_log
 
     $murphx->service_auth_log( "service-id" => '12345', "rows" => "5" );
 
@@ -375,7 +375,7 @@ sub service_auth_log {
     return @auth;
 }
 
-=head usage_summary 
+=head2 usage_summary 
 
     $murphx->usage_summary( '12345', '2009', '01' );
 
@@ -385,7 +385,7 @@ Alias for service_usage_summary()
 
 sub usage_summary { goto &service_usage_summary; }
 
-=head service_usage_summary
+=head2 service_usage_summary
 
     $murphx->service_usage_summary( "service-id" =>'12345', "year" => '2009', "month" => '01' );
 
@@ -469,7 +469,7 @@ sub requestmac {
     return %mac;
 }
 
-=head service_history
+=head2 service_history
 
     $murphx->service_history( "12345" );
 
@@ -480,7 +480,7 @@ Returns the full history for the given service as an array each element of which
 
 sub service_history { goto &service_eventlog_history; }
 
-=head service_eventlog_history
+=head2 service_eventlog_history
 
 $murphx->service_eventlog_history( "12345" );
 
@@ -513,7 +513,7 @@ sub service_eventlog_history {
     return @history;
 }
 
-=head services_history
+=head2 services_history
 
     $murphx->services_history( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
 
@@ -524,7 +524,7 @@ Returns an array each element of which is a hash continaing the following data:
 
 sub services_history { goto &service_eventlog_changes; }
 
-=head service_eventlog_changes
+=head2 service_eventlog_changes
 
     $murphx->service_eventlog_changes( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
 
