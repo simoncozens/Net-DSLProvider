@@ -640,7 +640,7 @@ Combines the data from service_details, service_history and service_options
 
 Returns a hash as follows:
 
-    &service = {    "service-details" => {
+    %service = {    "service-details" => {
                         service-id => "", product-id => "", 
                         ... },
                     "service-options" => {
