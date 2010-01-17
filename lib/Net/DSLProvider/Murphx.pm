@@ -21,6 +21,7 @@ my %formats = (
     woosh_response => {"" => { "woosh-id" => "counting" }},
     change_password => {"" => { "service-id" => "counting", "password" => "password" }},
     service_details => {"" => { "service-id" => "counting" }},
+    service_view => {"" => { "service-id" => "counting" }},
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
     service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
@@ -629,6 +630,62 @@ sub order_status {
         $order{customer}{$_} = $response->{block}->{customer}->{a}->{$_}->{content};
         }
     return %order;
+}
+
+=head2 service_view
+
+    $murphx->service_details ( '12345' );
+
+Combines the data from service_details, service_history and service_options
+
+Returns a hash as follows:
+
+    &service = {    "service-details" => {
+                        service-id => "", product-id => "", 
+                        ... },
+                    "service-options" => {
+                        "speed-limit" => "", "suspended" => "",
+                        ... },
+                    ""service-history" => {
+                        [ 
+                            { "event-date" => "", ... },
+                            ...
+                        ] },
+                    "customer-details" => {
+                        "title" => "", "forename", ... }
+                }
+
+See Murphx documentation for full details
+
+=cut
+
+sub service_view {
+    my ($self, $service) = @_;
+    return undef unless $service;
+    
+    my $response = $self->make_request("service_details", {
+            "service-id" => $service });
+
+    my %service = ();
+    foreach ( keys %{$response->{block}} ) {
+        my $b = $_;
+        if ( ref $response->{block}->{$b} eq "ARRAY" ) {
+            my @history = ();
+            while ( my $r = pop @{$response->{block}->{$b}->{block}} ) {
+                my %a = ();
+                foreach ( keys %{$r->{a}} ) {
+                    $a{$_} = $r->{a}->{$_}->{content};
+                }
+                push @history, \%a;
+            }
+            $service{$b} = @history;
+        } else {
+            foreach ( keys %{$response->{block}->{$b}->{a}} ) {
+                $service{$b}{$_} = $response->{block}->{$b}->{a}->{$_}->{content};
+            }
+        }
+    }
+    return %service;
 }
 
 =head2 service_details 
