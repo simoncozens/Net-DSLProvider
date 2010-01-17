@@ -52,8 +52,7 @@ sub request_xml {
     my ($self, $method, $data) = @_;
     my $id = time.$$;
     my $xml = qq{<?xml version="1.0"?>
-    <Request module="XPS" call="$method" id="$id" version="2.0.1"
->
+    <Request module="XPS" call="$method" id="$id" version="2.0.1">
         <block name="auth">
             <a name="client-id" format="counting">@{[$self->clientid]}</a>
             <a name="username" format="text">@{[$self->user]}</a>
