@@ -14,6 +14,12 @@ my %formats = (
     order_status => { "" => { "order-id" => "counting" }},
     order_eventlog_history => { "" => { "order-id" => "counting" }},
     service_details => {"" => { "service-id" => "counting" }},
+    woosh_request_oneshot => {"" => { "service-id" => "counting",
+        "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
+        fault-time" => "datetime" }},
+    woosh_list => {"" => { "service-id" => "counting" }},
+    woosh_response => {"" => { "woosh-id" => "counting" }},
+    change_password => {"" => { "service-id" => "counting", "password" => "password" }},
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
     service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
@@ -105,6 +111,132 @@ sub services_available {
     return %services;
 }
 
+=head change_password 
+
+    $murphx->change_password( "service-id" => "12345", "password" => "secret" );
+
+Changes the password for the ADSL login on the given service.
+
+Requires service-id and password
+
+Returns 1 for successful password change.
+
+=cut
+
+sub change_password {
+    my ($self, $args) = @_;
+    for (qw / service-id password /) {
+        if ( !$args->{$_} ) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("change_password", $args);
+
+    return undef unless $response={status}{no} == 0;
+    return 1;
+}
+
+=head woosh_response
+
+    $murphx->woosh_response( "12345" );
+
+Obtains the results of a Woosh test, previously requested using request_woosh(). Takes
+the ID of the woosh test as it's only parameter. Note that this will only return results
+for completed Woosh tests. Use woosh_list() to determine if the woosh test is completed.
+
+Returns an hash containing a hash for each set of test results. See Murphx documentation for 
+details of the test result fields.
+
+=cut
+
+sub woosh_response {
+    my ($self, $wooshid) = @_;
+    return undef unless $wooshid;
+
+    my $response = $self->make_request("woosh_response", { "woosh-id" => $wooshid });
+
+    my %results = ();
+    foreach ( keys %{$response->{block}->{block}} ) {
+        my $b = $_;
+        foreach ( keys %{$response->{block}->{block}->{$b}->{a}} ) {
+            $results{$b}{$_} = $response->{block}->{block}->{$b}->{a}->{$_}->{content};
+        }
+    }
+    return %results;
+}
+
+=head woosh_list
+
+    $murphx->woosh_list( "12345" );
+
+Obtain a list of all woosh tests requested for the given service-id and their status.
+
+Requires service-id as the single parameter.
+
+Returns an array each element of which is a hash containing the following fields for each requested
+Woosh test:
+    service-id woosh-id start-time stop-time status
+
+The array elements are sorted by date with the most recent being first.
+
+=cut
+
+sub woosh_list {
+    my ($self, $service) = @_;
+    return undef unless $service;
+
+    my $response = $self->make_request("woosh_list", { "service-id" => $service });
+
+    my @list = ();
+    while ( my $b = shift @{$response->{block}{block}} ) {
+        foreach ( keys %{$b->{a}} ) {
+            my %a = ();
+            $a{$_} = $b->{a}->{$_}->{content};
+        }
+        push @list, %a;
+    }
+    return @list;
+}
+
+=head request_woosh
+
+    $murphx->request_woosh( "service-id" => "12345", "fault-type" => "EPP",
+        "has-worked" => "Y", "disruptive" => "Y", "fault-time" => "2007-01-04 15:33:00");
+
+Alias to woosh_request_oneshot
+
+=cut
+
+sub request_woosh { goto &woosh_request_oneshot; }
+
+=head woosh_request_oneshot
+
+    $murphx->woosh_request_oneshot( "service-id" => "12345", "fault-type" => "EPP",
+        "has-worked" => "Y", "disruptive" => "Y", "fault-time" => "2007-01-04 15:33:00");
+
+Places a request for  Woosh test to be run on the given service. Parameters are passed as
+a hash which must contain:
+    service-id - ID of the service
+    fault-type - Type of fault to check. See Murphx documentation for available types
+    has-worked - Y if the service has worked in the past, N if it has not
+    disruptive - Y to allow Woosh to run a test which will be disruptive to the service.
+    fault-time - date and time (ISO format) the fault occured
+
+Returns a scalar which is the id of the woosh test. Use woosh_response with this id to get the results
+of the Woosh test.
+
+=cut
+
+sub woosh_request_oneshot {
+    my ($self, $args) = @_;
+    for (qw/ service-id fault-type has-worked disruptive fault-time /) {
+        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("woosh_request_oneshot", $args);
+
+    return $response->{a}->{"woosh-id"}->{content};
+}
+
 =head auth_log
 
     $murphx->auth_log( "service-id" => '12345', "rows" => "5" );
@@ -157,7 +289,7 @@ sub usage_summary { goto &service_usage_summary; }
 
 =head service_usage_summary
 
-    $murphx->service_usage_summary( '12345', '2009', '01' );
+    $murphx->service_usage_summary( "service-id" =>'12345', "year" => '2009', "month" => '01' );
 
 Gets a summary of usage in the given month. Inputs are service-id, year, month.
 
@@ -173,12 +305,11 @@ to be MB rather than octets contrary to the Murphx documentation.
 =cut
 
 sub service_usage_summary {
-    my ($self, $service, $year, $month) = @_;
-    return undef unless ( $service && $year && month );
+    my ($self, $args) = @_;
+    for (qw/ service-id year month /) {
+        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
 
-    my $response = $self->make_request("service_usage_summary", {
-        "service-id" => $service, "year" => $year, "month" => $month
-    });
+    my $response = $self->make_request("service_usage_summary", $args);
 
     my %usage = ();
     foreach ( keys %{$response->{block}->{a}} ) {
@@ -218,21 +349,19 @@ sub cease {
     $murphx->requestmac( '12345', "EU wishes to change ISP" );
 
 Obtains a MAC for the given service. Parameters are service-id and reason the customer
-wants a MAC. You must pass the service-id. The "reason" parameter is optional.
+wants a MAC. 
 
 Returns a hash comprising: mac, expiry-date
 
 =cut
 
 sub requestmac {
-    my ($self, $service, $reason) = @_;
-    return undef unless $service;
+    my ($self, $args) = @_;
+    for (qw/service-id reason/) {
+        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        }
 
-    $reason = "EU wishes to change ISP" unless $reason;
-
-    my $response = $self->make_request("requestmac", {
-        "service-id" => $service, "reason" => $reason
-    });
+    my $response = $self->make_request("requestmac", $args);
 
     my %mac = ();
 
