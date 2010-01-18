@@ -21,6 +21,7 @@ my %formats = (
     woosh_response => {"" => { "woosh-id" => "counting" }},
     change_password => {"" => { "service-id" => "counting", "password" => "password" }},
     service_details => {"" => { "service-id" => "counting" }},
+    service_status => {"" => { "service-id" => "counting", "order-id" => "counting"  }},
     service_view => {"" => { "service-id" => "counting" }},
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
@@ -469,6 +470,31 @@ sub requestmac {
     return %mac;
 }
 
+head2 service_status
+
+    $murphx->service_status( "12345" );
+
+Gets the current status for the given service. Requires "service-id".
+
+Returns a hash containing:
+    live, username, ip-address, session-established, session-start-date, ping-test,
+    average-latency
+
+=cut
+
+sub service_status {
+    my ($self, $service) = @_;
+    return undef unless $service;
+
+    my $response = $self->make_request("service_status", { "service-id" => $service });
+
+    my %status = ();
+    foreach ( keys %{$response->{block}->{a}} ) {
+        $status{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %status
+}
+
 =head2 service_history
 
     $murphx->service_history( "12345" );
@@ -494,6 +520,8 @@ sub service_eventlog_history {
     return undef unless $service;
 
     my @history = ();
+
+    my $response = $self->make_request("service_eventlog_history", { "service-id" => $service });
 
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
         while ( my $a = pop @{$response->{block}->{block}} ) {
