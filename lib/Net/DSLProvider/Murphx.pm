@@ -30,6 +30,7 @@ my %formats = (
     service_eventlog_changes => {"" => { "start-date" => "datetime", "stop-date" => "datetime" }},
     service_eventlog_history => { "" => { "service-id" => "counting" }},
     service_terminate_session => { "" => { "service-id" => "counting" }},
+    services_overusage => { "" => { "period" => "text", "limit" => "counting" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
@@ -804,6 +805,39 @@ sub service_details {
     return %details;
 }
 
+=head2 services_overusage
+
+    $murphx->services_overusage( "period" => "", "limit" => "100" );
+
+Returns an array each element of which is a hash detailing each service which has
+exceeded its usage cap. See the Murphx documentation for details.
+
+=cut
+
+sub services_overusage {
+    my ($self, $args) = @_;
+    die "You must return the period parameter" unless $args->{"period"};
+
+    my $response = $self->make_request("services_overusage", $args);
+
+    my @services = ();
+    if ( ref $response->{block} eq "ARRAY" ) {
+        while ( my $b = shift @{$response->{block}} ) {
+        my %a = ();
+            foreach (keys %{$b->{block}->{a}}) {
+                $a{$_} = $b->{block}->{a}->{$_}->{content};
+            }
+            push @services, \%a;
+        }
+    } else {
+        my %a = ();
+        foreach ( keys %{$response->{block}->{block}->{a}} ) {
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+        }
+        push @services, \%a;
+    }
+    return @services;
+}
 
 =head2 order
 
