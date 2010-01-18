@@ -26,6 +26,7 @@ my %formats = (
     service_usage_summary => {"" => { "service-id" => "counting", 
         "year" => "counting", "month" => "text" }},
     service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
+    service_session_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
     service_eventlog_changes => {"" => { "start-date" => "datetime", "stop-date" => "datetime" }},
     service_eventlog_history => { "" => { "service-id" => "counting" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
@@ -374,6 +375,45 @@ sub service_auth_log {
         push @auth, \%a;
     }
     return @auth;
+}
+
+=head2 service_session_log
+
+    $murphx->service_session_log( "session-id" => "12345", "rows" => "5" );
+
+Gets the last entries in the session log for the service. The number of entries is specified in 
+the "rows" parameter.
+
+Returns an array each element of which is a hash containing:
+    username start-time stop-time duration input-octets output-octets termination-reason
+
+=cut
+
+sub service_session_log {
+    my ($self, $args) = @_;
+    for (qw/service-id rows/) {
+        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+    }
+
+    my $response = $self->make_request("service_session_log", $args);
+
+    my @sessions = ();
+    if ( ref $response->{block} eq "ARRAY" ) {
+        while ( my $r = shift @{$response->{block}} ) {
+            my %a = ();
+            foreach ( keys %{$r->{block}->{a}} ) {
+                $a{$_} = $r->{block}->{a}->{$_}->{content};
+            }
+            push @sessions, \%a;
+        }
+    } else {
+        my %a = ();
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            $a{$_} = $r->{block}->{block}->{a}->{$_}->{content};
+        }
+        push @sessions, \%a;
+    }
+    return @sessions;
 }
 
 =head2 usage_summary 
