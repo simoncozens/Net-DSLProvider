@@ -29,6 +29,7 @@ my %formats = (
     service_session_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
     service_eventlog_changes => {"" => { "start-date" => "datetime", "stop-date" => "datetime" }},
     service_eventlog_history => { "" => { "service-id" => "counting" }},
+    service_terminate_session => { "" => { "service-id" => "counting" }},
     requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
     cease => {"" => { "service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
@@ -455,6 +456,26 @@ sub service_usage_summary {
         $usage{$_} = $response->{block}->{a}->{$_}->{content};
     }
     return %usage;
+}
+
+=head2 service_terminate_session
+
+    $murphx->service_terminate_session( "12345" );
+
+Terminates the current session on the given service-id.
+
+Returns 1 if successful
+
+=cut
+
+sub service_terminate_session {
+    my ($self, $service) = @_;
+    return undef unless $service;
+
+    my $response = $self->make_request("service_terminate_session", { "service-id" => $service });
+
+    return undef unless $response->{status}{no} == 0;
+    return 1;
 }
 
 =head2 cease
