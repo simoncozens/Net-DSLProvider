@@ -143,9 +143,9 @@ sub modify {
         if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("modify", $data);
+    my $response = $self->make_request("modify", $args);
 
-    return $response->{a}->{"order-id"}->{content};
+    return { "order-id" => $response->{a}->{"order-id"}->{content} };
 }
 
 =head2 change_password 
@@ -162,19 +162,18 @@ Returns 1 for successful password change.
 
 sub change_password {
     my ($self, $args) = @_;
-    for (qw / service-id password /) {
+    for (qw/service-id password/) {
         if ( !$args->{$_} ) { die "You must provide the $_ parameter"; }
     }
 
     my $response = $self->make_request("change_password", $args);
 
-    return undef unless $response={status}{no} == 0;
-    return 1;
+    return { "success" > 1 };
 }
 
 =head2 woosh_response
 
-    $murphx->woosh_response( "12345" );
+    $murphx->woosh_response( "woosh-id" => "12345" );
 
 Obtains the results of a Woosh test, previously requested using request_woosh(). Takes
 the ID of the woosh test as it's only parameter. Note that this will only return results
@@ -186,10 +185,10 @@ details of the test result fields.
 =cut
 
 sub woosh_response {
-    my ($self, $wooshid) = @_;
-    return undef unless $wooshid;
+    my ($self, $args) = @_;
+    die "You must provide the woosh-id parameter" unless $args->{"woosh-id"};
 
-    my $response = $self->make_request("woosh_response", { "woosh-id" => $wooshid });
+    my $response = $self->make_request("woosh_response", $args);
 
     my %results = ();
     foreach ( keys %{$response->{block}->{block}} ) {
@@ -203,7 +202,7 @@ sub woosh_response {
 
 =head2 woosh_list
 
-    $murphx->woosh_list( "12345" );
+    $murphx->woosh_list( "woosh-id" => "12345" );
 
 Obtain a list of all woosh tests requested for the given service-id and their status.
 
@@ -219,9 +218,10 @@ The array elements are sorted by date with the most recent being first.
 
 sub woosh_list {
     my ($self, $service) = @_;
+    die "You must provide the woosh-id parameter" unless $args->{"woosh-id"};
     return undef unless $service;
 
-    my $response = $self->make_request("woosh_list", { "service-id" => $service });
+    my $response = $self->make_request("woosh_list", $args);
 
     my @list = ();
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
@@ -240,7 +240,7 @@ sub woosh_list {
         push @list, \%a;
     }
 
-    return @list;
+    return { "woosh-list" => @list };
 }
 
 =head2 request_woosh
@@ -280,12 +280,12 @@ sub woosh_request_oneshot {
 
     my $response = $self->make_request("woosh_request_oneshot", $args);
 
-    return $response->{a}->{"woosh-id"}->{content};
+    return { "woosh-id" => $response->{a}->{"woosh-id"}->{content} };
 }
 
 =head2 order_updates_since
 
-    $murphx->order_updates_since( "2007-02-01 16:10:05" );
+    $murphx->order_updates_since( "date" => "2007-02-01 16:10:05" );
 
 Alias to order_eventlog_changes
 
@@ -295,7 +295,7 @@ sub order_updates_since { goto &order_eventlog_changes; }
 
 =head2 order_eventlog_changes
 
-    $murphx->order_eventlog_changes( "2007-02-01 16:10:05" );
+    $murphx->order_eventlog_changes( "date" => "2007-02-01 16:10:05" );
 
 Returns a list of events that have occurred on all orders since the provided date/time.
 
@@ -305,11 +305,10 @@ The return is an date/time sorted array of hashes each of which contains the fol
 =cut
 
 sub order_eventlog_changes {
-    my ($self, $time) = @_;
-    return undef unless $time;
+    my ($self, $args) = @_;
+    die "You must provide the date parameter"; } unless $args->{"date"};
 
-    my $response = $self->make_request("woosh_request_oneshot", {
-        "date" => $time });
+    my $response = $self->make_request("woosh_request_oneshot", $args);
 
     my @updates = ();
 
@@ -328,7 +327,7 @@ sub order_eventlog_changes {
         }
         push @updates, \%a;
     }
-    return @updates;
+    return { "updates" => @updates };
 }
 
 =head2 auth_log
@@ -376,7 +375,7 @@ sub service_auth_log {
         }
         push @auth, \%a;
     }
-    return @auth;
+    return { "logs" => @auth };
 }
 
 =head2 service_session_log
@@ -415,12 +414,12 @@ sub service_session_log {
         }
         push @sessions, \%a;
     }
-    return @sessions;
+    return { "session-log" =>  @sessions };
 }
 
 =head2 usage_summary 
 
-    $murphx->usage_summary( '12345', '2009', '01' );
+    $murphx->usage_summary( "service-id" =>'12345', "year" => '2009', "month" => '01' );
 
 Alias for service_usage_summary()
 
@@ -461,7 +460,7 @@ sub service_usage_summary {
 
 =head2 service_terminate_session
 
-    $murphx->service_terminate_session( "12345" );
+    $murphx->service_terminate_session( "service-id" => "12345" );
 
 Terminates the current session on the given service-id.
 
@@ -470,13 +469,12 @@ Returns 1 if successful
 =cut
 
 sub service_terminate_session {
-    my ($self, $service) = @_;
-    return undef unless $service;
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter"; unless $args->{"service-id"};
 
-    my $response = $self->make_request("service_terminate_session", { "service-id" => $service });
+    my $response = $self->make_request("service_terminate_session", $args);
 
-    return undef unless $response->{status}{no} == 0;
-    return 1;
+    return { "success" => 1 };
 }
 
 =head2 cease
@@ -494,20 +492,18 @@ Returns order-id which is the ID of the cease order for tracking purposes.
 
 sub cease {
     my ($self, $args) = @_;
-
-    return undef unless $args;
     for (qw/service-id crd client-ref/) {
         if (!$args->{$_}) { die "You must provide the $_ parameter"; }
         }
 
     my $response = $self->make_request("cease", $args);
 
-    return $response->{a}->{"order-id"}->{content};
+    return { "order-id" => $response->{a}->{"order-id"}->{content} };
 }
 
 =head2 requestmac
 
-    $murphx->requestmac( '12345', "EU wishes to change ISP" );
+    $murphx->requestmac( "service-id" => '12345', "reason" => "EU wishes to change ISP" );
 
 Obtains a MAC for the given service. Parameters are service-id and reason the customer
 wants a MAC. 
@@ -526,15 +522,15 @@ sub requestmac {
 
     my %mac = ();
 
-    $mac{mac} = $response->{a}->{mac}->{content};
+    $mac{"mac"} = $response->{a}->{"mac"}->{content};
     $mac{"expiry-date"} = $response->{a}->{"expiry-date"}->{content};
 
     return %mac;
 }
 
-head2 service_status
+=head2 service_status
 
-    $murphx->service_status( "12345" );
+    $murphx->service_status( "service-id" => "12345" );
 
 Gets the current status for the given service. Requires "service-id".
 
@@ -545,10 +541,10 @@ Returns a hash containing:
 =cut
 
 sub service_status {
-    my ($self, $service) = @_;
-    return undef unless $service;
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
 
-    my $response = $self->make_request("service_status", { "service-id" => $service });
+    my $response = $self->make_request("service_status", $args);
 
     my %status = ();
     foreach ( keys %{$response->{block}->{a}} ) {
@@ -559,7 +555,7 @@ sub service_status {
 
 =head2 service_history
 
-    $murphx->service_history( "12345" );
+    $murphx->service_history( "service-id" => "12345" );
 
 Returns the full history for the given service as an array each element of which is a hash:
     order-id name date value
@@ -570,7 +566,7 @@ sub service_history { goto &service_eventlog_history; }
 
 =head2 service_eventlog_history
 
-$murphx->service_eventlog_history( "12345" );
+$murphx->service_eventlog_history( "service-id" => "12345" );
 
 Returns the full history for the given service as an array each element of which is a hash:
     order-id name date value
@@ -578,12 +574,12 @@ Returns the full history for the given service as an array each element of which
 =cut
 
 sub service_eventlog_history {
-    my ($self, $service) = @_;
-    return undef unless $service;
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
 
     my @history = ();
 
-    my $response = $self->make_request("service_eventlog_history", { "service-id" => $service });
+    my $response = $self->make_request("service_eventlog_history", $args);
 
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
         while ( my $a = pop @{$response->{block}->{block}} ) {
@@ -600,7 +596,7 @@ sub service_eventlog_history {
         }
         push @history, \%a;
     }
-    return @history;
+    return { "history" => @history };
 }
 
 =head2 services_history
@@ -647,26 +643,29 @@ sub service_eventlog_changes {
         }
         push(@changes, \%u);
     }
-    return @changes;
+    return { "history" => @changes };
 }
 
 sub order_history { goto &order_eventlog_history; }
 
 =head2 order_eventlog_history
     
-    $murphx->order_eventlog_history( '12345' );
+    $murphx->order_eventlog_history( "order-id" => '12345' );
 
 Gets order history. Takes the order-id as input.
 
-Returns an array, each element of which is a hash showing the next update in date
-sorted order. The hash keys are date, name and value.
+Returns a hash containing an array "history" each element of which is a 
+hash showing the next update in date sorted order. The hash keys are date, 
+name and value.
 
 =cut
 
 sub order_eventlog_history {
-    my ($self, $order) = @_;
+    my ($self, $args) = @_;
+    die "You must provide the order-id parameter" unless $args->{"order-id"};
+
     return undef unless $order;
-    my $response = $self->make_request("order_eventlog_history", { "order-id" => $order });
+    my $response = $self->make_request("order_eventlog_history", $args);
 
     my @history = ();
 
@@ -686,12 +685,12 @@ sub order_eventlog_history {
         push(@history, \%u);
     }
 
-    return @history;
+    return { "history" => @history };
 }
 
 =head2 order_status
 
-    $murphx->order_status( '12345' );
+    $murphx->order_status( "order-id" => '12345' );
 
 Get's status of an order. Input is the order-id from Murphx
 
@@ -706,11 +705,10 @@ The customer hash contains:
 =cut
 
 sub order_status {
-    my ($self, $order) = @_;
-    return undef unless $order;
-    my $response = $self->make_request("order_status", {
-        "order-id" => $order
-        });
+    my ($self, $args) = @_;
+    die "You must provide the order-id parameter" unless $args->{"order-id"};
+    
+    my $response = $self->make_request("order_status", $args);
 
     my %order = ();
     foreach (keys %{$response->{block}->{order}->{a}} ) {
@@ -724,7 +722,7 @@ sub order_status {
 
 =head2 service_view
 
-    $murphx->service_details ( '12345' );
+    $murphx->service_details ( "service-id" => '12345' );
 
 Combines the data from service_details, service_history and service_options
 
@@ -750,12 +748,11 @@ See Murphx documentation for full details
 =cut
 
 sub service_view {
-    my ($self, $service) = @_;
-    return undef unless $service;
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
     
-    my $response = $self->make_request("service_details", {
-            "service-id" => $service });
-
+    my $response = $self->make_request("service_details", $args);
+    
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
         my $b = $_;
@@ -780,7 +777,7 @@ sub service_view {
 
 =head2 service_details 
 
-    $murphx->service_details( '12345' );
+    $murphx->service_details( "service-id" => '12345' );
 
 Obtains details of the service identified by "service-id" from Murphx
 
@@ -792,11 +789,10 @@ Returns a hash with details including (but not limited to):
 =cut
 
 sub service_details {
-    my ($self, $service) = @_;
-    return undef unless $service;
-    my $response = $self->make_request("service_details", {
-        "service-id" => $service, "detailed" => 'Y'
-        });
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
+
+    my $response = $self->make_request("service_details", $args);
 
     my %details = ();
     foreach (keys %{$response->{block}->{a}} ) {
@@ -836,7 +832,7 @@ sub services_overusage {
         }
         push @services, \%a;
     }
-    return @services;
+    return { "services" => @services };
 }
 
 =head2 order
