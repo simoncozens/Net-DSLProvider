@@ -95,6 +95,38 @@ my %formats = (
     }
 );
 
+my %orderfields = (
+    "ADSLAccount" => {
+        "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
+        "Title" => "title", "FirstName" => "forename", 
+        "Surname" => "surname", "CompanyName" => "company",
+        "Building" => "building", "Street" => "street", "Town" => "city",
+        "County" => "county", "Postcode" => "postcode", 
+        "TelephoneDay" => "telephone", "TelephoneEvening" => "telephone",
+        "Fax" => "fax", "Email" => "email", "Telephone" => "cli",
+        "ProvisionDate" =>"cli", "NAT" => "routed-ip", 
+        "Username" => "username", "Password" => "password",
+        "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
+        "ISPName" => "losing-isp", "CareLevel" => "care-level",
+        "Interleave" => "max-interleaving", "ForceLowerSpeed" = "classic",
+        "BTProductSpeed" => "classic-speed", "Realm" => "realm",
+        "BaseDomain" => "realm" },
+    "CustomerRecord" => {
+        "cCustomerID" => "customer-id", "cTtitle" => "ctitle",
+        "cFirstName" => "cforename", "cSurname" => "csurname",
+        "cCompanyName" => "ccompany", "cBuilding" => "cbuilding",
+        "cStreet" => "cstreet", "cTown" => "ctown", "cCity" => "ccity",
+        "cCounty" => "ccounty", "cPostcode" => "cpostcode",
+        "cTelephoneDay" => "ctelephone", "cTelephoneEvening" => "ctelephone",
+        "cFax" => "cfax", "cEmail" => "cemail" },
+    "BillingAccount" => {
+        "PurchaseOrderNumber" => "client-ref", 
+        "BillingPeriod" => "billing-period", 
+        "ContractTerm" => "contract-term",
+        "InitialPaymentMethod" => "initial-payment",
+        "OngoingPaymentMethod" => "ongoing-payment",
+        "PaymentMethod" => "payment-method" },
+    );
 
 sub request_xml {
     my ($self, $method, $data) = @_;
@@ -585,11 +617,22 @@ guide:
 
 sub order {
     my ($self, $args) = @_;
+    for (qw/ list all mandatory parameters here /) {
+        die "You must provide the $_ parameter" unless $args->{$_};
+    }
+
+    my $data = {};
+
+    # process %orderfields placing the data into the relevant $data{} field
+
+    my $response = $self->make_request("CreateADSLOrder", $args);
+
+    return { "Ref" => $response->{Response}->{OperationResponse}->{OurRef} };
 }
 
 =head2 auth_log
 
-    $enta->auth_log( "service-id" => '12345', "rows" => "5" );
+    $enta->auth_log( "Ref" => 'ADSL12345', "rows" => "5" );
 
 
 =cut
