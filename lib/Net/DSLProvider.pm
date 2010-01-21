@@ -79,4 +79,23 @@ See http://dev.perl.org/licenses/ for more information.
 
 =cut
 
+=head2 line_check
+
+    $dsl->line_check( cli => '02072221111', cwllu => 1 );
+
+Returns a hash detailing whether it is possible to provide ADSL on the 
+given cli, which classes of service are available and the estimated
+maximum speed the line may sustain.
+
+Required parameters: cli
+Optional parameters: cwllu bellu
+
+=cut
+
+sub line_check {
+    my ($self, $args) = @_;
+    return undef unless defined $args->{cli};
+
+}
+
 1; # End of Net::DSLProvider

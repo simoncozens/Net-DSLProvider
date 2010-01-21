@@ -16,7 +16,7 @@ my %formats = (
     order_eventlog_changes => { "" => { "date" => "datetime" }},
     woosh_request_oneshot => {"" => { "service-id" => "counting",
         "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
-        fault-time" => "datetime" }},
+        "fault-time" => "datetime" }},
     woosh_list => {"" => { "service-id" => "counting" }},
     woosh_response => {"" => { "woosh-id" => "counting" }},
     change_password => {"" => { "service-id" => "counting", "password" => "password" }},
