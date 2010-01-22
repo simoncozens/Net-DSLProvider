@@ -47,25 +47,41 @@ my %formats = (
     GetMaxReports => { "" => { "username" => "text", "ref" = "text" }},
     CreateADSLOrder => { 
         ADSLAccount => {
-            (map { $_ => "text" } qw/YourRef Product Title FirstName Surname 
-            CompanyName Building Street Town County NAT ISDN Username Password 
-            LineSpeed OveruseMethod ISPName CareLevel InitialCareLevelFee 
-            OngoingCareLevelFee TagOnTheLine Interleave ForceLowerSpeed 
-            BTProductSpeed MaxPAYGAmount Realm BaseDomain MAC/),
-            Postcode => "postcode", TelephoneDay => "phone", 
-            TelephoneEvening => "phone", Fax => "phone", Email => "email", 
-            Telephone => "phone", ProvisionDate => "dd/mm/yyyy"
+            "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
+            "Title" => "title", "FirstName" => "forename", 
+            "Surname" => "surname", "CompanyName" => "company",
+            "Building" => "building", "Street" => "street", "Town" => "city",
+            "County" => "county", "Postcode" => "postcode", 
+            "TelephoneDay" => "telephone", "TelephoneEvening" => "telephone",
+            "Fax" => "fax", "Email" => "email", "Telephone" => "cli",
+            "ProvisionDate" =>"crd", "NAT" => "routed-ip", 
+            "Username" => "username", "Password" => "password",
+            "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
+            "ISPName" => "losing-isp", "CareLevel" => "care-level",
+            "Interleave" => "max-interleaving", "ForceLowerSpeed" = "classic",
+            "BTProductSpeed" => "classic-speed", "Realm" => "realm",
+            "BaseDomain" => "realm", "ISDN" => "isdn",
+            "InitialCareLevelFee" => "iclfee", 
+            "OngoingCareLevelFee" => "oclfee", "TagOnTheLine" => 'totl',
+            "MaxPAYGAmount" => "payg-limit" 
         }
         CustomerRecord => {
-            (map { $_ => "text" } qw/cCustomerID cTtitle cFirstName cSurname cCompanyName
-            cBuilding cStreet cTown cCounty/),
-            cPostcode => "postcode", cTelephoneDay => "phone", cTelephoneEvening => "phone",
-            cFax => "phone", cEmail => "email"
+            "cCustomerID" => "customer-id", "cTtitle" => "ctitle",
+            "cFirstName" => "cforename", "cSurname" => "csurname",
+            "cCompanyName" => "ccompany", "cBuilding" => "cbuilding",
+            "cStreet" => "cstreet", "cTown" => "ctown", 
+            "cCounty" => "ccounty", "cPostcode" => "cpostcode",
+            "cTelephoneDay" => "ctelephone", 
+            "cTelephoneEvening" => "ctelephone",
+            "cFax" => "cfax", "cEmail" => "cemail"
         }
         BillingAccount => {
-            (map { $_ => "text" } qw/PurchaseOrderNumber BillingPeriod ContractTerm
-            InitialPaymentMethod OngoingPaymentMethod/),
-            PaymentMethod => "counting"
+            "PurchaseOrderNumber" => "client-ref", 
+            "BillingPeriod" => "billing-period", 
+            "ContractTerm" => "contract-term",
+            "InitialPaymentMethod" => "initial-payment",
+            "OngoingPaymentMethod" => "ongoing-payment",
+            "PaymentMethod" => "payment-method" 
         }
     },
     AdslProductChange => { 
@@ -95,38 +111,6 @@ my %formats = (
     }
 );
 
-my %orderfields = (
-    "ADSLAccount" => {
-        "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
-        "Title" => "title", "FirstName" => "forename", 
-        "Surname" => "surname", "CompanyName" => "company",
-        "Building" => "building", "Street" => "street", "Town" => "city",
-        "County" => "county", "Postcode" => "postcode", 
-        "TelephoneDay" => "telephone", "TelephoneEvening" => "telephone",
-        "Fax" => "fax", "Email" => "email", "Telephone" => "cli",
-        "ProvisionDate" =>"cli", "NAT" => "routed-ip", 
-        "Username" => "username", "Password" => "password",
-        "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
-        "ISPName" => "losing-isp", "CareLevel" => "care-level",
-        "Interleave" => "max-interleaving", "ForceLowerSpeed" = "classic",
-        "BTProductSpeed" => "classic-speed", "Realm" => "realm",
-        "BaseDomain" => "realm" },
-    "CustomerRecord" => {
-        "cCustomerID" => "customer-id", "cTtitle" => "ctitle",
-        "cFirstName" => "cforename", "cSurname" => "csurname",
-        "cCompanyName" => "ccompany", "cBuilding" => "cbuilding",
-        "cStreet" => "cstreet", "cTown" => "ctown", "cCity" => "ccity",
-        "cCounty" => "ccounty", "cPostcode" => "cpostcode",
-        "cTelephoneDay" => "ctelephone", "cTelephoneEvening" => "ctelephone",
-        "cFax" => "cfax", "cEmail" => "cemail" },
-    "BillingAccount" => {
-        "PurchaseOrderNumber" => "client-ref", 
-        "BillingPeriod" => "billing-period", 
-        "ContractTerm" => "contract-term",
-        "InitialPaymentMethod" => "initial-payment",
-        "OngoingPaymentMethod" => "ongoing-payment",
-        "PaymentMethod" => "payment-method" },
-    );
 
 sub request_xml {
     my ($self, $method, $data) = @_;
@@ -148,7 +132,7 @@ sub request_xml {
     my $recurse;
     $recurse = sub {
         my ($format, $data) = @_;
-        while (my ($key, $contents) = each %$format) {
+        while (my ($key, $contents) = each %$formats) {
             if (ref $contents eq "HASH") {
                 if ($key) { $xml .= "<$key>\n"; }
                 $recurse->($contents, $data->{$key});
@@ -623,17 +607,29 @@ sub order {
 
     my $data = {};
 
-    # process %orderfields placing the data into the relevant $data{} field
+    foreach ( keys %{$formats{"CreateADSLOrder"}} ) {
+        if ( ref $formats{"CreateADSLOrder"}->{$_} eq "HASH" ) {
+            my $k = $_;
+            foreach ( keys %{$formats{"CreateADSLOrder"}{$k}} ) {
+                $data->{$k}->{$_} = $args->{$formats{"CreateADSLOrder"}{$k}{$_}};
+            }
+        }
+        else {
+            $data->{$_} = $args->{$formats{"CreateADSLOrder"}->{$_}};
+        }
+    }
 
-    my $response = $self->make_request("CreateADSLOrder", $args);
+    my $response = $self->make_request("CreateADSLOrder", $data);
 
-    return { "Ref" => $response->{Response}->{OperationResponse}->{OurRef} };
+    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "service-id" => $response->{Response}->{OperationResponse}->{OurRef} };
 }
 
 =head2 auth_log
 
-    $enta->auth_log( "Ref" => 'ADSL12345', "rows" => "5" );
+    $enta->auth_log( "Ref" => 'ADSL12345' );
 
+Gets the most recent authentication attempt log
 
 =cut
 

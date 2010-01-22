@@ -80,7 +80,7 @@ sub request_xml {
     my $recurse;
     $recurse = sub {
         my ($format, $data) = @_;
-        while (my ($key, $contents) = each %$format) {
+        while (my ($key, $contents) = each %$formats) {
             if (ref $contents eq "HASH") {
                 if ($key) { $xml .= "<block name=\"$key\">\n"; }
                 $recurse->($contents, $data->{$key});
