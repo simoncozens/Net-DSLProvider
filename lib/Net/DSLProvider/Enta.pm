@@ -198,12 +198,36 @@ sub make_request {
     return $resp_o;
 }
 
+sub convert_input {
+    my ($self, $method, $args) = @_;
+    die unless $method && ref $args eq 'HASH';
+
+    my $data = {};
+
+    foreach ( keys %{$formats{$method}} ) {
+        if ( ref $formats{$method}->{$_} eq "HASH" ) {
+            my $k = $_;
+            foreach ( keys %{$formats{$method}{$k}} ) {
+                $data->{$k}->{$_} = $args->{$formats{$method}{$k}{$_}};
+            }
+        }
+        else {
+            $data->{$_} = $args->{$formats{$method}->{$_}};
+        }
+    }
+    return $data;
+}
+
 sub serviceid {
     # used internally only to get the correct service identifier to 
     # present to Enta
     my ( $self, $args ) = @_;
-    die unless ($args->{ref} || $args->{username} || $args->{telephone});
+    die unless ($args->{"ref"} || $args->{"username"} || 
+        $args->{"telephone"} || $args->{"service-id"} ||
+        $args->{"order-id"} );
 
+    return { "Ref" => $args->{"service-id"} } if $args->{"service-id"};
+    return { "Ref" => $args->{"order-id"} } if $args->{"order-id"};
     return { "Ref" => $args->{"ref"} } if $args->{"ref"};
     return { "Username" => $args->{"username"} } if $args->{"username"};
     return { "Telephone" => $args->{"telephone"} } if $args->{"telephone"};
@@ -274,9 +298,9 @@ sub verify_mac {
     return 1;
 }
 
-=head interleaving
+=head2 interleaving
 
-    $enta->interleaving( "ref" => "ADSL123456", "interleaving" => "No")
+    $enta->interleaving( "service-id" => "ADSL123456", "interleaving" => "No")
 
 Changes the interleaving setting on the given service
 
@@ -297,9 +321,9 @@ sub interleaving {
         "Interleaving" => $args->{interleaving} } });
 }
 
-=head stabilityoption 
+=head2 stabilityoption 
 
-    $enta->stabilityoption( ref => "ADSL123456", "option" => "Standard" );
+    $enta->stabilityoption( "service-id" => "ADSL123456", "option" => "Standard" );
 
 Sets the Stability Option feature on a service
 
@@ -320,9 +344,9 @@ sub stabilityoption {
         "StabilityOption" => $args->{"option"} } } );
 }
 
-=head elevatedbestefforts
+=head2 elevatedbestefforts
 
-    $enta->elevatedbestefforts( ref => "ADSL123456", "option" => "Yes",
+    $enta->elevatedbestefforts( "service-id" => "ADSL123456", "option" => "Yes",
         "fee" => "5.00" );
 
 Enables or disables Elevated Best Efforts on the given service. If the
@@ -353,7 +377,7 @@ sub elevatedbestefforts {
 
 =head2 enhancedcare
     
-    $enta->enhancedcare( ref => "ADSL123456", "option" => "On",
+    $enta->enhancedcare( "service-id" => "ADSL123456", "option" => "On",
         "fee" => "15.00" );
 
 Enables or disabled Enhanced Care on a given service. If the optional
@@ -481,7 +505,7 @@ sub getbtfeed {
 
 =head2 usage_summary 
 
-    $enta->usage_summary( "ref" => "ADSL12345", "year" => '2009', "month" => '01' );
+    $enta->usage_summary( "service-id" => "ADSL12345", "year" => '2009', "month" => '01' );
 
 =cut 
 
@@ -492,7 +516,7 @@ sub usage_summary {
 
 =head2 usagehistory 
 
-    $enta->usagehistory( "ref" =>'ADSL12345' );
+    $enta->usagehistory( "service-id" =>'ADSL12345' );
 
 Gets a summary of usage for the given service. Optionally a start and end
 date for the query may be specified either as a unix timestamp, in which
@@ -519,7 +543,7 @@ sub usagehistory {
 
 =head2 cease
 
-    $enta->cease( "ref" => "ADSL12345", "crd" => "1970-01-01" );
+    $enta->cease( "service-id" => "ADSL12345", "crd" => "1970-01-01" );
 
 Places a cease order to terminate the ADSL service completely. 
 
@@ -532,7 +556,7 @@ sub cease {
 
 =head2 requestmac
 
-    $murphx->requestmac( "ref" => 'ADSL12345');
+    $murphx->requestmac( "service-id" => 'ADSL12345');
 
 Obtains a MAC for the given service. 
 
@@ -543,15 +567,11 @@ Returns a hash comprising: mac, expiry-date
 sub requestmac {
     my ($self, $args) = @_;
 
-
 }
-
-}
-
 
 =head2 service_view
 
-    $enta->service_details( "ref" => 'ADSL12345' );
+    $enta->service_details( "service-id" => 'ADSL12345' );
 
 Returns the ADSL service details
 
@@ -561,7 +581,7 @@ sub service_view { goto &adslaccount; }
 
 =head2 service_details 
 
-    $enta->service_details( "ref" => 'ADSL12345' );
+    $enta->service_details( "service-id" => 'ADSL12345' );
 
 Returns the ADSL service details
 
@@ -601,23 +621,24 @@ guide:
 
 sub order {
     my ($self, $args) = @_;
-    for (qw/ list all mandatory parameters here /) {
+    for (qw/prod-id title forename surname street city county postcode
+        telephone email cli crd routed-ip username password linespeed
+        topup care-level billing-period contract-term initial-payment 
+        ongoing-payment payment-method mac totl max-interleaving 
+        customer-id/) {
         die "You must provide the $_ parameter" unless $args->{$_};
     }
 
-    my $data = {};
-
-    foreach ( keys %{$formats{"CreateADSLOrder"}} ) {
-        if ( ref $formats{"CreateADSLOrder"}->{$_} eq "HASH" ) {
-            my $k = $_;
-            foreach ( keys %{$formats{"CreateADSLOrder"}{$k}} ) {
-                $data->{$k}->{$_} = $args->{$formats{"CreateADSLOrder"}{$k}{$_}};
-            }
-        }
-        else {
-            $data->{$_} = $args->{$formats{"CreateADSLOrder"}->{$_}};
+    if ( $args->{"customer-id"} eq 'New' ) {
+        for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
+            ctelephone cemail/) {
+            die "You must provide the $_ parameter" unless $args->{$_};
         }
     }
+
+    $args->{"isdn"} = 'N';
+
+    my $data = $self->convert_input("CreateADSLOrder", $args);
 
     my $response = $self->make_request("CreateADSLOrder", $data);
 
@@ -627,7 +648,7 @@ sub order {
 
 =head2 auth_log
 
-    $enta->auth_log( "Ref" => 'ADSL12345' );
+    $enta->auth_log( "service-id" => 'ADSL12345' );
 
 Gets the most recent authentication attempt log
 
