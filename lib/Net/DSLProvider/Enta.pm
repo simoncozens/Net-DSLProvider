@@ -568,8 +568,13 @@ sub cease {
 
     my $serviceId = $self->serviceid($args);
     
-    my $response = $self->make_request("", { %$serviceid, %$args } );
-    
+    my $response = $self->make_request("CeaseADSLOrder", { %$serviceid, 
+        "CeaseDate" => $args->{"crd"} } );
+
+    die "Cease order not accepted by Enta" 
+        unless $response->{Response}->{Type} eq 'Accept';
+
+    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef} };
 }
 
 =head2 requestmac
