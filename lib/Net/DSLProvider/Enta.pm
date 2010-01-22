@@ -166,12 +166,12 @@ sub make_request {
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
 
-        my $body .= "--$boundary\n";
+        my $body .= "--" . BOUNDARY . "\n";
         $body .= "Content-Disposition: form-data; name=\"userfile\"; filename=\"XML.data\"\n";
         $body .= "Content-Type: application/octet-stream\n\n";
         $body .= $xml;
         $body .= "\n";
-        $body .= "--$boundary--\n";
+        $body .= "--" . BOUNDARY . "--\n";
 
         $req = new HTTP::Request 'POST' => $url;
     } else {
@@ -578,7 +578,8 @@ sub cease {
 
 Obtains a MAC for the given service. 
 
-Returns a hash comprising: mac, expiry-date
+Returns a hash comprising: mac, expiry-date if the MAC is available or
+submits a request for the MAC which can be obtained later.
 
 =cut
 
@@ -587,10 +588,19 @@ sub requestmac {
     die "You must provide the service-id parameter" 
         unless $args->{"service-id"};
 
+    my $adsl = $self->adslaccount($args);
+    if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
+        my $expires = $adsl->{"ADSLAccount"}->{"MACExpires"};
+        $expires =~ s/\+\d+//;
+        return { "mac" => $adsl->{"ADSLAccount"}->{"MAC"},
+                 "expiry-date" => $expires };
+    }
+
     my $serviceId = $self->serviceid($args);
     
-    my $response = $self->make_request("", { %$serviceid, %$args } );
-    
+    my $response = $self->make_request("RequestMAC", $serviceid );
+
+    return { "Requested" => 1 };
 }
 
 =head2 service_view
@@ -628,7 +638,20 @@ sub adslaccount {
     
     my $serviceId = $self->serviceid($args);
     
-    my $response = $self->make_request("", { %$serviceid, %$args } );
+    my $response = $self->make_request("AdslAccount", $serviceid );
+
+    my %data = ();
+    foreach (keys %{$response->{Response}->{OperationResponse}} ) {
+        if ( ref $response->{Response}->{OperationResponse}->{$_} eq 'HASH' ) {
+            my $b = $_;
+            foreach (keys %{$response->{Response}->{OperationResponse}->{$b}} {
+                $data{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
+            }
+        } else {
+            $data{$_} = $response->{Response}->{OperationResponse}->{$_};
+        }
+    }
+    return %data;
 }
 
 =head2 auth_log
@@ -646,7 +669,7 @@ sub auth_log {
 
     my $serviceId = $self->serviceid($args);
     
-    my $response = $self->make_request("LastRadiusLog", { %$serviceid, %$args } );
+    my $response = $self->make_request("LastRadiusLog", $serviceid );
 
     my %log = ();
     foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
