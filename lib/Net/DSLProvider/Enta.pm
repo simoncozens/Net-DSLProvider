@@ -116,7 +116,7 @@ sub request_xml {
     my ($self, $method, $data) = @_;
 
     my $live = "Live";
-    $live = "Test" if defined $self->testing;
+    $live = "Test" if @{[$self->testing]};
 
     my $stupidEnta = 1 if $method =~ /($stupidlist)/;
 
