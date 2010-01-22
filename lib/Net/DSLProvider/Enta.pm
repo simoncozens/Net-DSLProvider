@@ -24,27 +24,27 @@ my @stupidEnta = ("CreateADSLOrder", "AdslProductChange",
 my $stupidlist = join("|", @stupidEnta);
 
 my %formats = (
-    AdslAccount => { "" => { "username" => "text", "ref" => "text", "telephone" => "phone" }},
+    AdslAccount => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" }},
     ListConnections => { "" => { "liveorceased" => "text", "fields" => "text" }},
-    CheckUsernameAvailable => { "" => { "username" => "text" }},
+    CheckUsernameAvailable => { "" => { "Username" => "text" }},
     GetBTFault => { "" => { "day" => "text", "start" => "text", "end" => "text" }},
-    GetAdslInstall => { "" => { "username" => "text", "ref" = "text" }},
+    GetAdslInstall => { "" => { "Username" => "text", "Ref" = "text" }},
     GetBTFeed => { "" => { "days" => "counting" }},
-    GetNotes => => { "" => { "username" => "text", "ref" = "text" }},
+    GetNotes => => { "" => { "Username" => "text", "Ref" = "text" }},
     PendingOrders => { "" => { }},
     PSTNPendingOrders => { "" => { }},
-    LastRadiusLog => { "" => { "username" => "text", "ref" = "text" }},
-    ConnectionHistory => { "" => { "username" => "text", "ref" = "text", "telephone" => "phone", 
+    LastRadiusLog => { "" => { "Username" => "text", "Ref" = "text" }},
+    ConnectionHistory => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone", 
         "days" => "counting" }},
-    GetInterleaving => { "" => { "username" => "text", "ref" = "text", "telephone" => "phone" }},
-    GetOpenADSLFaults => { "" => { "username" => "text", "ref" = "text", "telephone" => "phone" }},
-    RequestMAC => { "" => { "" => { "username" => "text", "ref" = "text", "telephone" => "phone" }},
-    UsageHistory => { "" => { "username" => "text", "ref" = "text", "rawdisplay" => "text",
-        "starttimestamp" = "unixtime", "endtimestamp" => "unixtime", 
+    GetInterleaving => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
+    GetOpenADSLFaults => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
+    RequestMAC => { "" => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
+    UsageHistory => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone",
+        "starttimestamp" = "unixtime", "endtimestamp" => "unixtime", "rawdisplay" => "text",
         "startdatetime" => "dd/mm/yyyy hh:mm:ss", "enddatetime" => "dd/mm/yyyy hh:mm:ss" }},
-    UsageHistoryDetail => { "" => { "username" => "text", "ref" = "text", "day" => "dd/mm/yyyy",
-        "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy" }},
-    GetMaxReports => { "" => { "username" => "text", "ref" = "text" }},
+    UsageHistoryDetail => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
+        "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" }},
+    GetMaxReports => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" }},
     CreateADSLOrder => { 
         ADSLAccount => {
             "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
@@ -101,9 +101,9 @@ my %formats = (
             }
         }
     },
-    CeaseADSLOrder => { "" => { "Ref" => "text", "Username" => "text", 
+    CeaseADSLOrder => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
         CeaseDate => 'dd/mm/yyyy' }},
-    ChangeInterleave => { "" => { "Ref" => "text", "Username" => "text",
+    ChangeInterleave => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         Interleave => "text" }},
     UpdateADSLContact => { "" => { "Ref" => "text", "Username" => "text", Telephone => "phone",
         ContactDetails => { Email => "email", TelDay => "phone", TelEve => "phone" } 
@@ -132,7 +132,7 @@ sub request_xml {
     my $recurse;
     $recurse = sub {
         my ($format, $data) = @_;
-        while (my ($key, $contents) = each %$formats) {
+        while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
                 if ($key) { $xml .= "<$key>\n"; }
                 $recurse->($contents, $data->{$key});
@@ -456,7 +456,7 @@ Returns all the BT order updates since the given date
 
 sub order_updates_since { 
     my ($self, $args) = @_;
-    return undef unless $args->{"date"};
+    die "You must provide the date parameter" unless $args->{"date"};
 
     my $from = Time::Piece->strptime($args->{"date"}, "%F");
     my $now = localtime;
@@ -480,7 +480,7 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub getbtfeed {
     my ($self, $args) = @_;
-    return undef unless $args->{"days"};
+    die "You must provide the days parameter" unless $args->{"days"};
 
     my $response = $self->make_request("GetBTFeed", $args);
 
@@ -511,7 +511,13 @@ sub getbtfeed {
 
 sub usage_summary {
     my ($self, $args) = @_;
+    for (qw/service-id year month/) {
+    die "You must provide the $_ parameter" unless $args->{$_}
+    }
 
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("", { %$serviceid, %$args } );
 }
 
 =head2 usagehistory 
@@ -538,7 +544,13 @@ to be MB rather than octets contrary to the Murphx documentation.
 
 sub usagehistory {
     my ($self, $args) = @_;
+    die "You must provide the service-id parameter" 
+        unless $args->{"service-id"};
 
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("", { %$serviceid, %$args } );
+    
 }
 
 =head2 cease
@@ -551,7 +563,13 @@ Places a cease order to terminate the ADSL service completely.
 
 sub cease {
     my ($self, $args) = @_;
+    for (qw/service-id crd/) {
+    die "You must provide the $_ parameter" unless $args->{$_}
 
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("", { %$serviceid, %$args } );
+    
 }
 
 =head2 requestmac
@@ -566,7 +584,13 @@ Returns a hash comprising: mac, expiry-date
 
 sub requestmac {
     my ($self, $args) = @_;
+    die "You must provide the service-id parameter" 
+        unless $args->{"service-id"};
 
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("", { %$serviceid, %$args } );
+    
 }
 
 =head2 service_view
@@ -588,6 +612,48 @@ Returns the ADSL service details
 =cut
 
 sub service_details { goto &adslaccount; }
+
+=head2 adslaccount
+
+    $enta->adslaccount( "service-id" => "ADSL12345" );
+
+Returns details for the given service
+
+=cut
+
+sub adslaccount {
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" 
+        unless $args->{"service-id"};
+    
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("", { %$serviceid, %$args } );
+}
+
+=head2 auth_log
+
+    $enta->auth_log( "service-id" => 'ADSL12345' );
+
+Gets the most recent authentication attempt log
+
+=cut
+
+sub auth_log {
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" 
+        unless $args->{"service-id"};
+
+    my $serviceId = $self->serviceid($args);
+    
+    my $response = $self->make_request("LastRadiusLog", { %$serviceid, %$args } );
+
+    my %log = ();
+    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
+        $log{$_} = $response->{Response}->{OperationResponse}->{$_};
+    }
+    return %log;
+}
 
 =head2 order
 
@@ -644,19 +710,6 @@ sub order {
 
     return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
              "service-id" => $response->{Response}->{OperationResponse}->{OurRef} };
-}
-
-=head2 auth_log
-
-    $enta->auth_log( "service-id" => 'ADSL12345' );
-
-Gets the most recent authentication attempt log
-
-=cut
-
-sub auth_log {
-    my ($self, $args) = @_;
-
 }
 
 1;

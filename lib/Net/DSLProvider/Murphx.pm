@@ -80,7 +80,7 @@ sub request_xml {
     my $recurse;
     $recurse = sub {
         my ($format, $data) = @_;
-        while (my ($key, $contents) = each %$formats) {
+        while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
                 if ($key) { $xml .= "<block name=\"$key\">\n"; }
                 $recurse->($contents, $data->{$key});
@@ -876,7 +876,7 @@ sub order {
     defined $data_in->{$_} and $data->{customer}{$_} = $data_in->{$_} 
         for qw/title street company mobile email fax sub-premise/;
 
-    for (qw/clid client-ref prod-id crd username/) {
+    for (qw/cli client-ref prod-id crd username/) {
         if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
         $data->{order}{$_} = $data_in->{$_};
     }
