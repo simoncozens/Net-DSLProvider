@@ -27,24 +27,22 @@ my %formats = (
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
     ListConnections => { "liveorceased" => "text", "fields" => "text" },
     CheckUsernameAvailable => { "Username" => "username" },
-    GetBTFault => { "" => { "day" => "text", "start" => "text", "end" => "text" }},
-    GetAdslInstall => { "" => { "Username" => "text", "Ref" = "text" }},
-    GetBTFeed => { "" => { "days" => "counting" }},
-    GetNotes => => { "" => { "Username" => "text", "Ref" = "text" }},
-    PendingOrders => { "" => { }},
-    PSTNPendingOrders => { "" => { }},
-    LastRadiusLog => { "" => { "Username" => "text", "Ref" = "text" }},
-    ConnectionHistory => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone", 
-        "days" => "counting" }},
-    GetInterleaving => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
-    GetOpenADSLFaults => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
-    RequestMAC => { "" => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone" }},
-    UsageHistory => { "" => { "Username" => "text", "Ref" = "text", "Telephone" => "phone",
-        "starttimestamp" = "unixtime", "endtimestamp" => "unixtime", "rawdisplay" => "text",
-        "startdatetime" => "dd/mm/yyyy hh:mm:ss", "enddatetime" => "dd/mm/yyyy hh:mm:ss" }},
-    UsageHistoryDetail => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
-        "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" }},
-    GetMaxReports => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" }},
+    GetBTFault => { "day" => "text", "start" => "text", "end" => "text" },
+    GetAdslInstall => { "Username" => "text", "Ref" => "text" },
+    GetBTFeed => { "days" => "counting" },
+    GetNotes => => { "Username" => "text", "Ref" => "text" },
+    LastRadiusLog => { "Username" => "text", "Ref" => "text" },
+    ConnectionHistory => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
+        "days" => "counting" },
+    GetInterleaving => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
+    GetOpenADSLFaults => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
+    RequestMAC => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
+    UsageHistory => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
+        "starttimestamp" => "unixtime", "endtimestamp" => "unixtime", "rawdisplay" => "text",
+        "startdatetime" => "dd/mm/yyyy hh:mm:ss", "enddatetime" => "dd/mm/yyyy hh:mm:ss" },
+    UsageHistoryDetail => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
+        "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
+    GetMaxReports => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     CreateADSLOrder => { 
         ADSLAccount => {
             "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
@@ -58,13 +56,13 @@ my %formats = (
             "Username" => "username", "Password" => "password",
             "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
             "ISPName" => "losing-isp", "CareLevel" => "care-level",
-            "Interleave" => "max-interleaving", "ForceLowerSpeed" = "classic",
+            "Interleave" => "max-interleaving", "ForceLowerSpeed" => "classic",
             "BTProductSpeed" => "classic-speed", "Realm" => "realm",
             "BaseDomain" => "realm", "ISDN" => "isdn",
             "InitialCareLevelFee" => "iclfee", 
             "OngoingCareLevelFee" => "oclfee", "TagOnTheLine" => 'totl',
             "MaxPAYGAmount" => "payg-limit" 
-        }
+        },
         CustomerRecord => {
             "cCustomerID" => "customer-id", "cTtitle" => "ctitle",
             "cFirstName" => "cforename", "cSurname" => "csurname",
@@ -74,7 +72,7 @@ my %formats = (
             "cTelephoneDay" => "ctelephone", 
             "cTelephoneEvening" => "ctelephone",
             "cFax" => "cfax", "cEmail" => "cemail"
-        }
+        },
         BillingAccount => {
             "PurchaseOrderNumber" => "client-ref", 
             "BillingPeriod" => "billing-period", 
@@ -86,7 +84,7 @@ my %formats = (
     },
     ModifyLineFeatures => { "ADSLAccount" => {
         "Ref" => "text", "Username" => "text", "Telephone" => "phone",
-        "LineFeatures" = > {
+        "LineFeatures" => {
             "Interleaving" => "text", "StabilityOption" => "text", 
             "ElevatedBestEfforts" => "yesno", "ElevatedBestEffortsFee" => "text", 
             "MaintenanceCategory" => "counting", "MaintenanceCategoryFee" => "text"
@@ -99,8 +97,7 @@ my %formats = (
         Interleave => "text" },
     UpdateADSLContact => { "Ref" => "ref", "Username" => "username", Telephone => "telephone",
         ContactDetails => { Email => "email", TelDay => "phone", TelEve => "phone" } 
-    }
-);
+    } );
 
 
 sub request_xml {
