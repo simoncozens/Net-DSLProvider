@@ -182,7 +182,7 @@ sub make_request {
     }
 
         if ( $self->testing ) {
-            use Data::Dumper; print Dumper $req; 
+            use Data::Dumper; print Dumper $ua, $req; 
         }
 
     $res = $ua->request($req);
