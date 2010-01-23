@@ -181,10 +181,6 @@ sub make_request {
         $req->content($body);
     }
 
-        if ( $self->testing ) {
-            use Data::Dumper; print Dumper $ua, $req; 
-        }
-
     $res = $ua->request($req);
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
