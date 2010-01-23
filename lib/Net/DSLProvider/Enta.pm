@@ -15,13 +15,10 @@ use Time::Seconds;
 # These are methods for which we have to pass Enta a block of XML as a file
 # via POST rather than simply using GET with the parameters and the fields 
 # in the XML are case sensitive while they are not when using GET
-my @xml_methods = ("AdslProductChange", "ModifyLineFeatures", 
-    "UpdateADSLContact", "CreateADSLOrder");
-my $xml_methods = join("|", @xml_methods);
 
-my @stupidEnta = ("CreateADSLOrder", "AdslProductChange", 
-    "ModifyLineFeatures", "UpdateADSLContact");
-my $stupidlist = join("|", @stupidEnta);
+my %enta_xml_methods = ( "AdslProductChange" => 1, 
+    "ModifyLineFeatures" => 1, "UpdateADSLContact" => 1,
+    "CreateADSLOrder" => 1 );
 
 my %formats = (
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
@@ -106,7 +103,7 @@ sub request_xml {
     my $live = "Live";
     $live = "Test" if @{[$self->testing]};
 
-    my $stupidEnta = 1 if $method =~ /($stupidlist)/;
+    my $stupidEnta = 1 if $enta_xml_methods{$method};
 
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
     <ResponseBlock Type="$live">|;
@@ -149,8 +146,8 @@ sub make_request {
     my $agent = __PACKAGE__ . '/0.1 ';
     $ua->agent($agent . $ua->agent);
 
-    my $url = ENDPOINT . $method . '.php?';
-    if ( $method =~ /($xml_methods)/ ) {     
+    my $url = ENDPOINT . "xml/$method" . '.php?';
+    if ( $enta_xml_methods{$method} ) {     
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
 
@@ -164,14 +161,15 @@ sub make_request {
         $req = new HTTP::Request 'POST' => $url;
     } else {
         push @{$ua->requests_redirectable}, 'GET';
-        $url .= "$key=$value&" while (($key, $value) = each (%args));
+        $url .= "$key=$value&" while (($key, $value) = each (%$data));
+
         $req = new HTTP::Request 'GET' => $url;
     }
 
     $req->authorization_basic(@{[$self->user]}, @{[$self->pass]});
     $req->header( 'MIME_Version' => '1.0', 'Accept' => 'text/xml' );
 
-    if ( $method =~ /($xml_methods)/ ) {
+    if ( $enta_xml_methods{$method}) {
         $req->header('Content-type' => 'multipart/form-data; type="text/xml"; boundary=' . $boundary);
         $req->header('Content-length' => length $body);
         $req->content($body);
@@ -182,7 +180,7 @@ sub make_request {
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
     my $resp_o = XMLin($res->content);
 
-    if ($resp_o->{Response}{Type} eq 'Error') { die  $resp_o->{OperationResponse}{ErrorDescription} };
+    if ($resp_o->{Response}->{Type} eq 'Error') { die "Enta error: " . $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
     return $resp_o;
 }
 
@@ -207,13 +205,12 @@ sub convert_input {
 }
 
 sub serviceid {
-    # used internally only to get the correct service identifier to 
-    # present to Enta
     my ( $self, $args ) = @_;
+    
     die "You must supply the service-id parameter" unless 
-        ($args->{"ref"} || $args->{"username"} || 
+        ( $args->{"ref"} || $args->{"username"} || 
         $args->{"telephone"} || $args->{"service-id"} ||
-        $args->{"order-id"} );
+        $args->{"order-id"} ) ;
 
     return { "Ref" => $args->{"service-id"} } if $args->{"service-id"};
     return { "Ref" => $args->{"order-id"} } if $args->{"order-id"};

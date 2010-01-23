@@ -92,10 +92,5 @@ Optional parameters: cwllu bellu
 
 =cut
 
-sub line_check {
-    my ($self, $args) = @_;
-    return undef unless defined $args->{cli};
-
-}
 
 1; # End of Net::DSLProvider
