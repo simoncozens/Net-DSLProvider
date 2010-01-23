@@ -24,9 +24,9 @@ my @stupidEnta = ("CreateADSLOrder", "AdslProductChange",
 my $stupidlist = join("|", @stupidEnta);
 
 my %formats = (
-    AdslAccount => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" }},
-    ListConnections => { "" => { "liveorceased" => "text", "fields" => "text" }},
-    CheckUsernameAvailable => { "" => { "Username" => "text" }},
+    AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
+    ListConnections => { "liveorceased" => "text", "fields" => "text" },
+    CheckUsernameAvailable => { "Username" => "username" },
     GetBTFault => { "" => { "day" => "text", "start" => "text", "end" => "text" }},
     GetAdslInstall => { "" => { "Username" => "text", "Ref" = "text" }},
     GetBTFeed => { "" => { "days" => "counting" }},
@@ -84,14 +84,6 @@ my %formats = (
             "PaymentMethod" => "payment-method" 
         }
     },
-    AdslProductChange => { 
-        (map "ProductChange " . $_ => {
-            NewProduct => {
-                Family => "text", Speed => "text", Cap => "counting"
-            },
-            Schedule => "text"
-        } qw/Username Ref/) 
-    },
     ModifyLineFeatures => { "ADSLAccount" => {
         "Ref" => "text", "Username" => "text", "Telephone" => "phone",
         "LineFeatures" = > {
@@ -101,13 +93,12 @@ my %formats = (
             }
         }
     },
-    CeaseADSLOrder => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
-        CeaseDate => 'dd/mm/yyyy' }},
-    ChangeInterleave => { "" => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
-        Interleave => "text" }},
-    UpdateADSLContact => { "" => { "Ref" => "text", "Username" => "text", Telephone => "phone",
+    CeaseADSLOrder => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
+        CeaseDate => 'dd/mm/yyyy' },
+    ChangeInterleave => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
+        Interleave => "text" },
+    UpdateADSLContact => { "Ref" => "ref", "Username" => "username", Telephone => "telephone",
         ContactDetails => { Email => "email", TelDay => "phone", TelEve => "phone" } 
-        }
     }
 );
 
@@ -183,7 +174,7 @@ sub make_request {
     $req->authorization_basic(@{[$self->user]}, @{[$self->pass]});
     $req->header( 'MIME_Version' => '1.0', 'Accept' => 'text/xml' );
 
-    if ( $method =~ /( )/ ) {
+    if ( $method =~ /($xml_methods)/ ) {
         $req->header('Content-type' => 'multipart/form-data; type="text/xml"; boundary=' . $boundary);
         $req->header('Content-length' => length $body);
         $req->content($body);
@@ -222,7 +213,8 @@ sub serviceid {
     # used internally only to get the correct service identifier to 
     # present to Enta
     my ( $self, $args ) = @_;
-    die unless ($args->{"ref"} || $args->{"username"} || 
+    die "You must supply the service-id parameter" unless 
+        ($args->{"ref"} || $args->{"username"} || 
         $args->{"telephone"} || $args->{"service-id"} ||
         $args->{"order-id"} );
 
@@ -309,16 +301,15 @@ Changes the interleaving setting on the given service
 sub interleaving {
     my ($self, $args) = @_;
     die "You must provide the Interleaving parameter plus service identifier"
-        unless $args->{interleaving} && ( $args->{ref} || $args->{username}
-        || $args->{telephone} );
+        unless $args->{"interleaving"};
 
     die "interleaving can only be 'Yes', 'No' or 'Auto'" unless
-        $args->{option} =~ /(Yes|No|Auto)/;
+        $args->{"inteleaving"} =~ /(Yes|No|Auto)/;
 
-    my $serviceId = $self->serviceid($args);
+    my $deta = $self->serviceid($args);
+    $data->{"LineFeatures" => {"Interleaving" => $args->{"interleaving"}}};
 
-    return $self->modifylinefeatures( { %$serviceId,  "LineFeatures" => { 
-        "Interleaving" => $args->{interleaving} } });
+    return $self->modifylinefeatures( $data );
 }
 
 =head2 stabilityoption 
@@ -332,16 +323,15 @@ Sets the Stability Option feature on a service
 sub stabilityoption {
     my ($self, $args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"} && ( $args->{ref} || $args->{username}
-        || $args->{telephone} );
+        unless $args->{"option"};
 
     die "option can only be 'Standard', 'Stable', or 'Super Stable'" unless
-        $args->{option} =~ /(Standard|Stable|Super Stable)/;
+        $args->{"option"} =~ /(Standard|Stable|Super Stable)/;
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
+    $data->{"LineFeatures" => { "StabilityOption" => $args->{"option"}}};
 
-    return $self->modifylinefeatures( { %$serviceId,  "LineFeatures" => {
-        "StabilityOption" => $args->{"option"} } } );
+    return $self->modifylinefeatures( $data );
 }
 
 =head2 elevatedbestefforts
@@ -358,21 +348,18 @@ set accordingly, otherwise it is set to the default charged by Enta.
 sub elevatedbestefforts {
     my ($self, $args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"} && ( $args->{ref} || $args->{username}
-        || $args->{telephone} );
+        unless $args->{"option"};
 
     die "option can only be 'Yes' or 'No'" unless
         $args->{option} =~ /(Yes|No)/;
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
 
-    my $data = { "LineFeatures" => { 
-        "ElevatedBestEfforts" => $args->{"option"} } };
-
-    $data->{"LineFeatures"}{"ElevatedBestEffortsFee"} = $args->{"fee"}
+    $data->{"LineFeatures"}->{"ElevatedBestEfforts"} = $args->{"option"};
+    $data->{"LineFeatures"}->{"ElevatedBestEffortsFee"} = $args->{"fee"}
         if $args->{"fee"};
 
-    return $self->modifylinefeatures( { %$serviceId,  %$data } );
+    return $self->modifylinefeatures( $data );
 }
 
 =head2 enhancedcare
@@ -389,23 +376,20 @@ accordingly, otherwise it is set to the default charged by Enta.
 sub enhancedcare {
     my ($self, $args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"} && ( $args->{ref} || $args->{username}
-        || $args->{telephone} );
+        unless $args->{"option"};
 
     die "option can only be 'On' or 'Off'" unless
         $args->{option} =~ /(On|Off)/;
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
     my $ec = 4 if $args->{option} eq 'On';
     my $ec = 5 if $args->{option} eq 'Off';
 
-    my $data = { "LineFeatures" => {
-        "MaintenanceCategory" => $ec }};
-
-    $data->{"LineFeatures"}{"MaintenanceCategoryFee"} = $args->{"fee"}
+    $data->{"LineFeatures"}->{"MaintenanceCategory"} = $ec;
+    $data->{"LineFeatures"}->{"MaintenanceCategoryFee"} = $args->{"fee"}
         if $args->{"fee"};
 
-    return $self->modifylinefeatures( { %$serviceId,  %$data });
+    return $self->modifylinefeatures( $data );
 }
 
 =head2 modifylinefeatures
@@ -435,7 +419,8 @@ sub modifylinefeatures {
     my ($self, $args) = @_;
     die "You must provide the LineFeatures parameter plus service identifier"
         unless $args->{LineFeatures} && 
-            ( $args->{ref} || $args->{username} || $args->{telephone} );
+            ( $args->{"Ref"} || $args->{"Username"} || 
+            $args->{"Telephone"} );
 
     my $response = $self->make_request("ModifyLineFeatures", $args);
 
@@ -515,9 +500,12 @@ sub usage_summary {
     die "You must provide the $_ parameter" unless $args->{$_}
     }
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
+
+    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
+    # the given month and year
     
-    my $response = $self->make_request("", { %$serviceid, %$args } );
+    my $response = $self->make_request("", $data );
 }
 
 =head2 usagehistory 
@@ -530,16 +518,6 @@ case the parameters are StartTimestamp and EndTimestamp, or in
 "dd/mm/yyyy hh:mm:ss" format, in which case the parameters are 
 StartDateTime and EndDateTime
 
-Returns a hash with the following fields:
-    
-    year, month, username, total-sessions, total-session-time, total-input-octets,
-    total-output-octets
-
-Input octets are upload bandwidth. Output octets are download bandwidth.
-
-Be warned that the total-input-octets and total-output-octets fields returned appear
-to be MB rather than octets contrary to the Murphx documentation. 
-
 =cut
 
 sub usagehistory {
@@ -547,9 +525,9 @@ sub usagehistory {
     die "You must provide the service-id parameter" 
         unless $args->{"service-id"};
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
     
-    my $response = $self->make_request("", { %$serviceid, %$args } );
+    my $response = $self->make_request("", $data );
     
 }
 
@@ -566,10 +544,10 @@ sub cease {
     for (qw/service-id crd/) {
     die "You must provide the $_ parameter" unless $args->{$_}
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
+    $data->{"CeaseDate"} = $args->{"crd"};
     
-    my $response = $self->make_request("CeaseADSLOrder", { %$serviceid, 
-        "CeaseDate" => $args->{"crd"} } );
+    my $response = $self->make_request("CeaseADSLOrder", $data); 
 
     die "Cease order not accepted by Enta" 
         unless $response->{Response}->{Type} eq 'Accept';
@@ -590,8 +568,6 @@ submits a request for the MAC which can be obtained later.
 
 sub requestmac {
     my ($self, $args) = @_;
-    die "You must provide the service-id parameter" 
-        unless $args->{"service-id"};
 
     my $adsl = $self->adslaccount($args);
     if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
@@ -601,11 +577,33 @@ sub requestmac {
                  "expiry-date" => $expires };
     }
 
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
     
-    my $response = $self->make_request("RequestMAC", $serviceid );
+    my $response = $self->make_request("RequestMAC", $data );
 
     return { "Requested" => 1 };
+}
+
+=head2 auth_log
+
+    $enta->auth_log( "service-id" => 'ADSL12345' );
+
+Gets the most recent authentication attempt log
+
+=cut
+
+sub auth_log {
+    my ($self, $args) = @_;
+
+    my $data = $self->serviceid($args);
+    
+    my $response = $self->make_request("LastRadiusLog", $data );
+
+    my %log = ();
+    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
+        $log{$_} = $response->{Response}->{OperationResponse}->{$_};
+    }
+    return %log;
 }
 
 =head2 service_view
@@ -638,49 +636,23 @@ Returns details for the given service
 
 sub adslaccount {
     my ($self, $args) = @_;
-    die "You must provide the service-id parameter" 
-        unless $args->{"service-id"};
     
-    my $serviceId = $self->serviceid($args);
+    my $data = $self->serviceid($args);
     
-    my $response = $self->make_request("AdslAccount", $serviceid );
+    my $response = $self->make_request("AdslAccount", $data );
 
-    my %data = ();
+    my %adsl = ();
     foreach (keys %{$response->{Response}->{OperationResponse}} ) {
         if ( ref $response->{Response}->{OperationResponse}->{$_} eq 'HASH' ) {
             my $b = $_;
             foreach (keys %{$response->{Response}->{OperationResponse}->{$b}} {
-                $data{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
+                $adsl{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
             }
         } else {
-            $data{$_} = $response->{Response}->{OperationResponse}->{$_};
+            $adsl{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
-    return %data;
-}
-
-=head2 auth_log
-
-    $enta->auth_log( "service-id" => 'ADSL12345' );
-
-Gets the most recent authentication attempt log
-
-=cut
-
-sub auth_log {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" 
-        unless $args->{"service-id"};
-
-    my $serviceId = $self->serviceid($args);
-    
-    my $response = $self->make_request("LastRadiusLog", $serviceid );
-
-    my %log = ();
-    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
-        $log{$_} = $response->{Response}->{OperationResponse}->{$_};
-    }
-    return %log;
+    return %adsl;
 }
 
 =head2 order
@@ -741,3 +713,4 @@ sub order {
 }
 
 1;
+
