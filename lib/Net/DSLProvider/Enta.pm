@@ -20,6 +20,11 @@ my %enta_xml_methods = ( "AdslProductChange" => 1,
     "ModifyLineFeatures" => 1, "UpdateADSLContact" => 1,
     "CreateADSLOrder" => 1 );
 
+my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
+    "ModifyLineFeatures" => "ModifyLineFeatures",
+    "UpdateADSLContact" => "UpdateADSLContact",
+    "AdslProductChange" => "AdslProductChange" );
+
 my %formats = (
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
     ListConnections => { "liveorceased" => "text", "fields" => "text" },
@@ -106,12 +111,12 @@ sub request_xml {
     my $stupidEnta = 1 if $enta_xml_methods{$method};
 
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
-    <ResponseBlock Type="$live">|;
+    <ResponseBlock Type="$live">\n|;
     if ( $stupidEnta ) {
-        $xml .= qq|<Response Type="$method">
-        <OperationResponse Type="$method">|;
+        $xml .= qq|<Response Type="| . $entatype{$method} . qq|">
+        <OperationResponse Type="| . $entatype{$method} . qq|">\n|;
     } else {
-        $xml .= qq|<OperationResponse Type="$method">|;
+        $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
     }
 
     my $recurse;
@@ -119,11 +124,11 @@ sub request_xml {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
-                if ($key) { $xml .= "<$key>\n"; }
+                if ($key) { $xml .= "\t<$key>\n"; }
                 $recurse->($contents, $data->{$key});
                 if ($key) { $xml .= "</$key>\n"; }
             } else {
-                $xml .= qq{<$key>}.encode_entities_numeric($data->{$key})."</$key>\n" if $data->{$key};
+                $xml .= qq{\t\t<$key>}.encode_entities_numeric($data->{$key})."</$key>\n" if $data->{$key};
             }
         }
     };
@@ -141,17 +146,17 @@ sub make_request {
     my ($self, $method, $data) = @_;
 
     my $ua = new LWP::UserAgent;
-    my ($req, $res);
+    my ($req, $res, $body) = ();
     $ua->cookie_jar({});
     my $agent = __PACKAGE__ . '/0.1 ';
     $ua->agent($agent . $ua->agent);
 
-    my $url = ENDPOINT . "xml/$method" . '.php?';
+    my $url = ENDPOINT . "xml/$method" . '.php';
     if ( $enta_xml_methods{$method} ) {     
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
 
-        my $body .= "--" . BOUNDARY . "\n";
+        $body .= "--" . BOUNDARY . "\n";
         $body .= "Content-Disposition: form-data; name=\"userfile\"; filename=\"XML.data\"\n";
         $body .= "Content-Type: application/octet-stream\n\n";
         $body .= $xml;
@@ -161,6 +166,7 @@ sub make_request {
         $req = new HTTP::Request 'POST' => $url;
     } else {
         push @{$ua->requests_redirectable}, 'GET';
+        $url .= '?';
         $url .= "$key=$value&" while (($key, $value) = each (%$data));
 
         $req = new HTTP::Request 'GET' => $url;
@@ -170,10 +176,14 @@ sub make_request {
     $req->header( 'MIME_Version' => '1.0', 'Accept' => 'text/xml' );
 
     if ( $enta_xml_methods{$method}) {
-        $req->header('Content-type' => 'multipart/form-data; type="text/xml"; boundary=' . $boundary);
+        $req->header('Content-type' => 'multipart/form-data; type="text/xml"; boundary=' . BOUNDARY);
         $req->header('Content-length' => length $body);
         $req->content($body);
     }
+
+        if ( $self->testing ) {
+            use Data::Dumper; print Dumper $req; 
+        }
 
     $res = $ua->request($req);
 
@@ -684,7 +694,7 @@ sub order {
     for (qw/prod-id title forename surname street city county postcode
         telephone email cli crd routed-ip username password linespeed
         topup care-level billing-period contract-term initial-payment 
-        ongoing-payment payment-method mac totl max-interleaving 
+        ongoing-payment payment-method totl max-interleaving 
         customer-id/) {
         die "You must provide the $_ parameter" unless $args->{$_};
     }
@@ -697,6 +707,9 @@ sub order {
     }
 
     $args->{"isdn"} = 'N';
+    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args->{mac};
+    my $d = Time::Piece->strptime($args->{"crd"}, "%F");
+    $args->{"crd"} = $d->dmy("/");
 
     my $data = $self->convert_input("CreateADSLOrder", $args);
 
