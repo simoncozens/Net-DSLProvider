@@ -539,7 +539,7 @@ Places a cease order to terminate the ADSL service completely.
 sub cease {
     my ($self, $args) = @_;
     for (qw/service-id crd/) {
-    die "You must provide the $_ parameter" unless $args->{$_}
+    die "You must provide the $_ parameter" unless $args->{$_};
 
     my $data = $self->serviceid($args);
     $data->{"CeaseDate"} = $args->{"crd"};
@@ -642,7 +642,7 @@ sub adslaccount {
     foreach (keys %{$response->{Response}->{OperationResponse}} ) {
         if ( ref $response->{Response}->{OperationResponse}->{$_} eq 'HASH' ) {
             my $b = $_;
-            foreach (keys %{$response->{Response}->{OperationResponse}->{$b}} {
+            foreach ( keys %{$response->{Response}->{OperationResponse}->{$b}} ) {
                 $adsl{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
             }
         } else {
