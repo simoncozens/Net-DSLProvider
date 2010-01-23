@@ -538,8 +538,8 @@ Places a cease order to terminate the ADSL service completely.
 
 sub cease {
     my ($self, $args) = @_;
-    for (qw/service-id crd/) {
-    die "You must provide the $_ parameter" unless $args->{$_};
+    die "You must provide the crd parameter" unless $args->{"crd"};
+    
 
     my $data = $self->serviceid($args);
     $data->{"CeaseDate"} = $args->{"crd"};
