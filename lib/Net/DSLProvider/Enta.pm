@@ -712,7 +712,8 @@ sub order {
     my $response = $self->make_request("CreateADSLOrder", $data);
 
     return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "service-id" => $response->{Response}->{OperationResponse}->{OurRef} };
+             "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
 }
 
 1;
