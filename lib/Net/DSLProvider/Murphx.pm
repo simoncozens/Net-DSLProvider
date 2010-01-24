@@ -75,7 +75,7 @@ sub request_xml {
             <a name="username" format="text">@{[$self->user]}</a>
             <a name="password" format="password">@{[$self->pass]}</a>
         </block>
-};
+        };
 
     my $recurse;
     $recurse = sub {
@@ -121,7 +121,7 @@ sub services_available {
         $services{$a->{a}->{'product-id'}->{content}} = 
             $a->{a}->{'first-date-text'}->{content};
     }
-    return %services;
+    return \%services;
 }
 
 =head2 modify
@@ -197,7 +197,7 @@ sub woosh_response {
             $results{$b}{$_} = $response->{block}->{block}->{$b}->{a}->{$_}->{content};
         }
     }
-    return %results;
+    return \%results;
 }
 
 =head2 woosh_list
@@ -455,7 +455,7 @@ sub service_usage_summary {
     foreach ( keys %{$response->{block}->{a}} ) {
         $usage{$_} = $response->{block}->{a}->{$_}->{content};
     }
-    return %usage;
+    return \%usage;
 }
 
 =head2 service_terminate_session
@@ -525,7 +525,7 @@ sub requestmac {
     $mac{"mac"} = $response->{a}->{"mac"}->{content};
     $mac{"expiry-date"} = $response->{a}->{"expiry-date"}->{content};
 
-    return %mac;
+    return \%mac;
 }
 
 =head2 service_status
@@ -550,7 +550,7 @@ sub service_status {
     foreach ( keys %{$response->{block}->{a}} ) {
         $status{$_} = $response->{block}->{a}->{$_}->{content};
     }
-    return %status
+    return \%status
 }
 
 =head2 service_history
@@ -717,7 +717,7 @@ sub order_status {
     foreach (keys %{$response->{block}->{customer}->{a}} ) {
         $order{customer}{$_} = $response->{block}->{customer}->{a}->{$_}->{content};
         }
-    return %order;
+    return \%order;
 }
 
 =head2 service_view
@@ -772,7 +772,7 @@ sub service_view {
             }
         }
     }
-    return %service;
+    return \%service;
 }
 
 =head2 service_details 
@@ -798,7 +798,7 @@ sub service_details {
     foreach (keys %{$response->{block}->{a}} ) {
         $details{$_} = $response->{block}->{a}->{$_}->{content};
         }
-    return %details;
+    return \%details;
 }
 
 =head2 services_overusage
@@ -900,7 +900,7 @@ sub order {
     foreach ( keys %{$response->{a}} ) {
         $order{$_} = $response->{a}->{$_}->{content};
     }
-    return %order;
+    return \%order;
 }
 
 1;

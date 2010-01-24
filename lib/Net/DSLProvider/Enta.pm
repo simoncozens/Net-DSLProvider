@@ -488,49 +488,6 @@ sub getbtfeed {
 }
 
 
-=head2 usage_summary 
-
-    $enta->usage_summary( "service-id" => "ADSL12345", "year" => '2009', "month" => '01' );
-
-=cut 
-
-sub usage_summary {
-    my ($self, $args) = @_;
-    for (qw/service-id year month/) {
-    die "You must provide the $_ parameter" unless $args->{$_}
-    }
-
-    my $data = $self->serviceid($args);
-
-    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
-    # the given month and year
-    
-    my $response = $self->make_request("", $data );
-}
-
-=head2 usagehistory 
-
-    $enta->usagehistory( "service-id" =>'ADSL12345' );
-
-Gets a summary of usage for the given service. Optionally a start and end
-date for the query may be specified either as a unix timestamp, in which
-case the parameters are StartTimestamp and EndTimestamp, or in 
-"dd/mm/yyyy hh:mm:ss" format, in which case the parameters are 
-StartDateTime and EndDateTime
-
-=cut
-
-sub usagehistory {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" 
-        unless $args->{"service-id"};
-
-    my $data = $self->serviceid($args);
-    
-    my $response = $self->make_request("", $data );
-    
-}
-
 =head2 cease
 
     $enta->cease( "service-id" => "ADSL12345", "crd" => "1970-01-01" );
@@ -557,7 +514,7 @@ sub cease {
 
 =head2 requestmac
 
-    $murphx->requestmac( "service-id" => 'ADSL12345');
+    $enta->requestmac( "service-id" => 'ADSL12345');
 
 Obtains a MAC for the given service. 
 
@@ -715,6 +672,53 @@ sub order {
              "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
              "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
 }
+
+=head2 usage_summary 
+
+    $enta->usage_summary( "service-id" => "ADSL12345", "year" => '2009', "month" => '01' );
+
+=cut 
+
+sub usage_summary {
+    my ($self, $args) = @_;
+    for (qw/service-id year month/) {
+    die "You must provide the $_ parameter" unless $args->{$_}
+    }
+
+    my $data = $self->serviceid($args);
+
+    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
+    # the given month and year
+    
+    my $response = $self->make_request("", $data );
+}
+
+=head2 usagehistory 
+
+    $enta->usagehistory( "service-id" =>'ADSL12345' );
+
+Gets a summary of usage for the given service. Optionally a start and end
+date for the query may be specified either as a unix timestamp, in which
+case the parameters are StartTimestamp and EndTimestamp, or in 
+"dd/mm/yyyy hh:mm:ss" format, in which case the parameters are 
+StartDateTime and EndDateTime
+
+=cut
+
+sub usagehistory {
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" 
+        unless $args->{"service-id"};
+
+    my $data = $self->serviceid($args);
+    
+    my $response = $self->make_request("", $data );
+    
+}
+
+
+
+
 
 1;
 
