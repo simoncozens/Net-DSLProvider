@@ -264,7 +264,7 @@ sub line_check {
         }
         $results{$_} = $response->{Response}->{OperationResponse}->{$_};
     }
-    return %result;
+    return \%result;
 }
 
 =head2 verify_mac
@@ -428,7 +428,7 @@ sub modifylinefeatures {
     foreach ( keys %{$response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}} ) {
         $return{$_} = $response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}->{$_}->{NewValue};
     }
-    return %return;
+    return \%return;
 }
 
 =head2 order_updates_since
@@ -603,7 +603,7 @@ sub auth_log {
     foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
         $log{$_} = $response->{Response}->{OperationResponse}->{$_};
     }
-    return %log;
+    return \%log;
 }
 
 =head2 service_view
@@ -652,7 +652,7 @@ sub adslaccount {
             $adsl{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
-    return %adsl;
+    return \%adsl;
 }
 
 =head2 order
