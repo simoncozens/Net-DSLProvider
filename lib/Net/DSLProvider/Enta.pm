@@ -66,7 +66,7 @@ my %formats = (
             "MaxPAYGAmount" => "payg-limit" 
         },
         CustomerRecord => {
-            "cCustomerID" => "customer-id", "cTtitle" => "ctitle",
+            "cCustomerID" => "customer-id", "cTitle" => "ctitle",
             "cFirstName" => "cforename", "cSurname" => "csurname",
             "cCompanyName" => "ccompany", "cBuilding" => "cbuilding",
             "cStreet" => "cstreet", "cTown" => "ctown", 
