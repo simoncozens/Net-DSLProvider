@@ -9,31 +9,31 @@ __PACKAGE__->mk_accessors(qw/clientid/);
 
 my %formats = (
     selftest => { sysinfo => { type => "text" }},
-    availability => { "" => { cli => "phone", detailed => "yesno",
-        ordertype => "text" } },
-    order_status => { "" => { "order-id" => "counting" }},
-    order_eventlog_history => { "" => { "order-id" => "counting" }},
-    order_eventlog_changes => { "" => { "date" => "datetime" }},
-    woosh_request_oneshot => {"" => { "service-id" => "counting",
+    availability => { cli => "phone", detailed => "yesno",
+        ordertype => "text" },
+    order_status => { "order-id" => "counting" },
+    order_eventlog_history => { "order-id" => "counting" },
+    order_eventlog_changes => { "date" => "datetime" },
+    woosh_request_oneshot => { "service-id" => "counting",
         "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
-        "fault-time" => "datetime" }},
-    woosh_list => {"" => { "service-id" => "counting" }},
-    woosh_response => {"" => { "woosh-id" => "counting" }},
-    change_password => {"" => { "service-id" => "counting", "password" => "password" }},
-    service_details => {"" => { "service-id" => "counting" }},
-    service_status => {"" => { "service-id" => "counting", "order-id" => "counting"  }},
-    service_view => {"" => { "service-id" => "counting" }},
-    service_usage_summary => {"" => { "service-id" => "counting", 
-        "year" => "counting", "month" => "text" }},
-    service_auth_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
-    service_session_log => {"" => { "service-id" => "counting", "rows" => "counting" }},
-    service_eventlog_changes => {"" => { "start-date" => "datetime", "stop-date" => "datetime" }},
-    service_eventlog_history => { "" => { "service-id" => "counting" }},
-    service_terminate_session => { "" => { "service-id" => "counting" }},
-    services_overusage => { "" => { "period" => "text", "limit" => "counting" }},
-    requestmac => {"" => { "service-id" => "counting", "reason" => "text" }},
-    cease => {"" => { "service-id" => "counting", "reason" => "text",
-        "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" }},
+        "fault-time" => "datetime" },
+    woosh_list => { "service-id" => "counting" },
+    woosh_response => { "woosh-id" => "counting" },
+    change_password => { "service-id" => "counting", "password" => "password" },
+    service_details => { "service-id" => "counting" },
+    service_status => { "service-id" => "counting", "order-id" => "counting"  },
+    service_view => { "service-id" => "counting" },
+    service_usage_summary => { "service-id" => "counting", 
+        "year" => "counting", "month" => "text" },
+    service_auth_log => { "service-id" => "counting", "rows" => "counting" },
+    service_session_log => { "service-id" => "counting", "rows" => "counting" },
+    service_eventlog_changes => { "start-date" => "datetime", "stop-date" => "datetime" },
+    service_eventlog_history => { "service-id" => "counting" },
+    service_terminate_session => { "service-id" => "counting" },
+    services_overusage => { "period" => "text", "limit" => "counting" },
+    requestmac => { "service-id" => "counting", "reason" => "text" },
+    cease => {"service-id" => "counting", "reason" => "text",
+        "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" },
     modify => {
         order => {
             "service-id" => "counting", "client-ref" => "text", "crd" => "date",
@@ -306,7 +306,7 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub order_eventlog_changes {
     my ($self, $args) = @_;
-    die "You must provide the date parameter"; } unless $args->{"date"};
+    die "You must provide the date parameter" unless $args->{"date"};
 
     my $response = $self->make_request("woosh_request_oneshot", $args);
 
@@ -448,6 +448,7 @@ sub service_usage_summary {
     my ($self, $args) = @_;
     for (qw/ service-id year month /) {
         if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+    }
 
     my $response = $self->make_request("service_usage_summary", $args);
 
@@ -470,7 +471,7 @@ Returns 1 if successful
 
 sub service_terminate_session {
     my ($self, $args) = @_;
-    die "You must provide the service-id parameter"; unless $args->{"service-id"};
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
 
     my $response = $self->make_request("service_terminate_session", $args);
 
@@ -515,7 +516,7 @@ Returns a hash comprising: mac, expiry-date
 sub requestmac {
     my ($self, $args) = @_;
     for (qw/service-id reason/) {
-        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        if ( ! $args->{$_} ) { use Data::Dumper; print Dumper $args; die "You must provide the $_ parameter"; }
         }
 
     my $response = $self->make_request("requestmac", $args);
@@ -591,7 +592,7 @@ sub service_eventlog_history {
         }
     } else {
         my %a = ();
-        foreach (keys $response->{block}->{block}->{a}) {
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{'content'};
         }
         push @history, \%a;
@@ -638,7 +639,7 @@ sub service_eventlog_changes {
         }
     } else {
         my %u = ();
-        foreach (keys $response->{block}->{block}->{a}) {
+        foreach ( keys %{$response->{block}->{block}->{a}} ) {
             $u{$_} = $response->{block}->{block}->{'a'}->{$_}->{content};
         }
         push(@changes, \%u);
@@ -679,7 +680,7 @@ sub order_eventlog_history {
         }
     } else {
         my %u = ();
-        foreach (keys $response->{block}->{block}->{a}) {
+        foreach ( keys %{$response->{block}->{block}->{a}} ) {
             $u{$_} = $response->{block}->{block}->{'a'}->{$_}->{content};
         }
         push(@history, \%u);
