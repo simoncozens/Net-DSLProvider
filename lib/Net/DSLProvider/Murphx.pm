@@ -20,7 +20,7 @@ my %formats = (
     woosh_list => { "service-id" => "counting" },
     woosh_response => { "woosh-id" => "counting" },
     change_password => { "service-id" => "counting", "password" => "password" },
-    service_details => { "service-id" => "counting" },
+    service_details => { "service-id" => "counting", "detailed" => "yesno" },
     service_status => { "service-id" => "counting", "order-id" => "counting"  },
     service_view => { "service-id" => "counting" },
     service_usage_summary => { "service-id" => "counting", 
@@ -42,10 +42,29 @@ my %formats = (
                 "test-mode" => "yesno" },
         }
     },
-    order => { 
+    provide => { 
         order => {   
             "client-ref" => "text", cli => "phone", "prod-id" => "counting",
-            crd => "date", username => "text", 
+            crd => "datetime", username => "text", 
+            attributes => {
+                password => "password", realm => "text", 
+                "fixed-ip" => "yesno", "routed-ip" => "yesno", 
+                "allocation-size" => "counting", "care-level" => "text",
+                "hardware-product" => "counting", 
+                "max-interleaving" => "text", "test-mode" => "yesno",
+                "inclusive-transfer" => "counting", "pstn-order-id" => "text"
+            }
+        }, customer => { 
+            (map { $_ => "text" } qw/title forename surname company building
+                street city county sub-premise/),
+            postcode => "postcode", telephone => "phone", 
+            mobile => "phone", fax => "phone", email => "email"
+        }
+    },
+    migrate => { 
+        order => {   
+            "client-ref" => "text", cli => "phone", "prod-id" => "counting",
+            crd => "datetime", username => "text", 
             attributes => {
                 password => "password", realm => "text", 
                 "fixed-ip" => "yesno", "routed-ip" => "yesno", 
@@ -82,11 +101,11 @@ sub request_xml {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
-                if ($key) { $xml .= "<block name=\"$key\">\n"; }
+                if ($key) { $xml .= "\t<block name=\"$key\">\n"; }
                 $recurse->($contents, $data->{$key});
-                if ($key) { $xml .= "</block>\n"; }
+                if ($key) { $xml .= "\t</block>\n"; }
             } else {
-                $xml .= qq{<a name="$key" format="$contents">}.encode_entities_numeric($data->{$key})."</a>\n" 
+                $xml .= qq{\t\t<a name="$key" format="$contents">}.encode_entities_numeric($data->{$key})."</a>\n" 
                 if $data->{$key};
             }
         }
@@ -375,7 +394,8 @@ sub service_auth_log {
         }
         push @auth, \%a;
     }
-    return { "logs" => @auth };
+
+    return { "logs" => \@auth };
 }
 
 =head2 service_session_log
@@ -516,7 +536,7 @@ Returns a hash comprising: mac, expiry-date
 sub requestmac {
     my ($self, $args) = @_;
     for (qw/service-id reason/) {
-        if ( ! $args->{$_} ) { use Data::Dumper; print Dumper $args; die "You must provide the $_ parameter"; }
+        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
         }
 
     my $response = $self->make_request("requestmac", $args);
@@ -753,7 +773,7 @@ sub service_view {
     die "You must provide the service-id parameter" unless $args->{"service-id"};
     
     my $response = $self->make_request("service_details", $args);
-    
+
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
         my $b = $_;
