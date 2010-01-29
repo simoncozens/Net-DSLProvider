@@ -54,7 +54,7 @@ my %formats = (
             "County" => "county", "Postcode" => "postcode", 
             "TelephoneDay" => "telephone", "TelephoneEvening" => "telephone",
             "Fax" => "fax", "Email" => "email", "Telephone" => "cli",
-            "ProvisionDate" =>"crd", "NAT" => "routed-ip", 
+            "ProvisionDate" =>"crd", "NAT" => "allocation-size", 
             "Username" => "username", "Password" => "password",
             "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
             "ISPName" => "losing-isp", "CareLevel" => "care-level",

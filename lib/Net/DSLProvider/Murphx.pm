@@ -31,6 +31,10 @@ my %formats = (
     service_eventlog_history => { "service-id" => "counting" },
     service_terminate_session => { "service-id" => "counting" },
     services_overusage => { "period" => "text", "limit" => "counting" },
+    speed_limit_enable => { "upstream-limit" => "counting", 
+        "downstream-limit" => "counting", "service-id" => "counting" },
+    speed_limit_disable => { "service-id" => "counting" },
+    speed_limit_status => { "service-id" => "counting" },
     requestmac => { "service-id" => "counting", "reason" => "text" },
     cease => {"service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" },
@@ -335,7 +339,7 @@ sub order_eventlog_changes {
         while (my $b = shift @{$response->{block}->{block}} ) {
             my %a = ();
             foreach ( keys %{$b->{a}} ) {
-                $a{$_}->$b->{a}->{$_}->{content};
+                $a{$_} = $b->{a}->{$_}->{content};
             }
             push @updates, \%a;
         }
@@ -854,6 +858,44 @@ sub services_overusage {
         push @services, \%a;
     }
     return { "services" => @services };
+}
+
+sub speed_limit_status {
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
+
+    my $response = $self->make_request("speed_limit_status", $args);
+
+    if ( $response->{a}->{content} ) {
+        return $response->{a}->{content};
+    }
+    else {
+        my %status = ();
+        foreach (keys %{$response->{a}} ) {
+            $status{$_} = $response->{a}->{$_}->{content};
+        }
+        return \%status;
+    }
+}
+
+sub speed_limit_enable {
+    my ($self, $args) = @_;
+    for ( qw/service-id upstream-limit downstream-limit/ ) {
+        die "You must provide the $_ parameter" unless $args->{$_};
+    }
+
+    my $response = $self->make_request("speed_limit_enable", $args);
+
+    return 1;
+}
+
+
+sub speed_limit_disable {
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
+
+    my $response = $self->make_request("speed_limit_disable", $args);
+
+    return 1;
 }
 
 =head2 order
