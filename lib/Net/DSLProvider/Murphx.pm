@@ -35,6 +35,8 @@ my %formats = (
         "downstream-limit" => "counting", "service-id" => "counting" },
     speed_limit_disable => { "service-id" => "counting" },
     speed_limit_status => { "service-id" => "counting" },
+    service_suspend => {"service-id" => "counting", "reason" => "text" },
+    service_unsuspend => { "service-id" => "counting" },
     requestmac => { "service-id" => "counting", "reason" => "text" },
     cease => {"service-id" => "counting", "reason" => "text",
         "client-ref" => "text", "crd" => "datetime", "accepts-charges" => "yesno" },
@@ -891,12 +893,34 @@ sub speed_limit_enable {
 
 
 sub speed_limit_disable {
+    my ($self, $args) = @_;
     die "You must provide the service-id parameter" unless $args->{"service-id"};
 
     my $response = $self->make_request("speed_limit_disable", $args);
 
     return 1;
 }
+
+sub service_unsuspend {
+    my ($self, $args) = @_;
+    die "You must provide the service-id parameter" unless $args->{"service-id"};
+
+    my $response = $self->make_request("service_unsuspend", $args);
+
+    return 1;
+}
+
+sub service_suspend {
+    my ($self, $args) = @_;
+    for ( qw/service-id reason/) {
+        die "You must provide the $_ parameter" unless $args->{$_};
+    }
+
+    my $response = $self->make_request("service_suspend", $args);
+
+    return 1;
+}
+
 
 =head2 order
 
