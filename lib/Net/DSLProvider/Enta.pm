@@ -403,7 +403,7 @@ sub enhancedcare {
 
     my $data = $self->serviceid($args);
     my $ec = 4 if $args->{option} eq 'On';
-    my $ec = 5 if $args->{option} eq 'Off';
+    $ec = 5 if $args->{option} eq 'Off';
 
     $data->{"LineFeatures"}->{"MaintenanceCategory"} = $ec;
     $data->{"LineFeatures"}->{"MaintenanceCategoryFee"} = $args->{"fee"}
