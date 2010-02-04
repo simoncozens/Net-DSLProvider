@@ -250,25 +250,25 @@ sub services_available {
 
     my %avail = ();
 
-    $avail{"RA8"} = 1 unless $details->{Max}->{RAG} eq "R";
+    $avail{"RA8"} = "ADSL MAX up to 8Mb/s" unless $details->{Max}->{RAG} eq "R";
 
     if ( $details->{FixedRate}->{RAG} =~ /(R|A|G)/ && 
         $details->{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
-        $avail{"FIXED500"} = 1;
+        $avail{"FIXED500"} = "Fixed 512Kb/s";
     }
 
     if ( $details->{FixedRate}->{RAG} =~ /(A|G)/ &&
         $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED1000"} = 1;
+        $avail{"FIXED1000"} = "Fixed 1Mb/s";
     }
 
     if ( $details->{FixedRate}->{RAG} eq "G" && 
         $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED2000"} = 1;
+        $avail{"FIXED2000"} = "Fixed 2Mb/s";
     }
 
     if ( $details->{WBC}->{RAG} && $details->{WBC}->{RAG} ne "R" ) {
-        $avail{"RA24"} = 1;
+        $avail{"RA24"} = "ADSL2+ up to 24Mb/s";
     }
 
     return \%avail;
