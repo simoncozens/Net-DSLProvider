@@ -26,6 +26,8 @@ my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
     "AdslProductChange" => "AdslProductChange" );
 
 my %formats = (
+    ADSLChecker => { "PhoneNo" => "phone", "Version" => "4",
+        "MACcode" => "text" },
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
     ListConnections => { "liveorceased" => "text", "fields" => "text" },
     CheckUsernameAvailable => { "Username" => "username" },
@@ -186,7 +188,7 @@ sub make_request {
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
     my $resp_o = XMLin($res->content);
 
-    if ($resp_o->{Response}->{Type} eq 'Error') { die "Enta error: " . $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
+    if ($resp_o->{Response}->{Type} eq 'Error') { die $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
     return $resp_o;
 }
 
@@ -225,10 +227,85 @@ sub serviceid {
     return { "Telephone" => $args->{"telephone"} } if $args->{"telephone"};
 }
 
+
+=head2 services_available
+
+    $enta->services_available ( { cli => "02072221122" } );
+
+returns a list of which services are available:
+    FIXED500, FIXED1000, FIXED2000, RA8, RA24
+
+=cut
+
 sub services_available {
     my ($self, $args) = @_;
+    die "You must supply the cli parameter" unless $args->{"cli"};
 
-    return { "" => "" };
+    my $details = $self->adslchecker( {cli=>$args->{"cli"}} );
+
+    return undef unless $details->{ErrorCode} eq "0";
+
+    return undef if ( $details->{FixedRate}->{RAG} eq "R" &&
+        $details->{RateAdaptive}->{RAG} eq "R" );
+
+    my %avail = ();
+
+    $avail{"RA8"} = 1 unless $details->{Max}->{RAG} eq "R";
+
+    if ( $details->{FixedRate}->{RAG} =~ /(R|A|G)/ && 
+        $details->{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
+        $avail{"FIXED500"} = 1;
+    }
+
+    if ( $details->{FixedRate}->{RAG} =~ /(A|G)/ &&
+        $details->{RateAdaptive}->{RAG} eq "G" ) {
+        $avail{"FIXED1000"} = 1;
+    }
+
+    if ( $details->{FixedRate}->{RAG} eq "G" && 
+        $details->{RateAdaptive}->{RAG} eq "G" ) {
+        $avail{"FIXED2000"} = 1;
+    }
+
+    if ( $details->{WBC}->{RAG} && $details->{WBC}->{RAG} ne "R" ) {
+        $avail{"RA24"} = 1;
+    }
+
+    return \%avail;
+}
+
+=head2 adslchecker 
+
+    $enta->adslchecker( { cli => "02072221122", mac => "LSDA12345523/DF12D" } );
+
+Returns details from Enta's interface to the BT ADSL checker. See Enta docs
+for details of what is returned.
+
+cli parameter is required. mac is optional
+
+=cut
+
+sub adslchecker {
+    my ($self, $args) = @_;
+    die "You must supply the cli parameter" unless $args->{"cli"};
+
+    my $response = $self->make_request("ADSLChecker", 
+        { "PhoneNo" => $args->{cli}, "MACcode" => $args->{mac},
+          "Version" => 4 } );
+
+    my %results = ();
+    foreach (keys %{$response->{Response}->{OperationResponse}}) {
+        if ( ref $response->{Response}->{OperationResponse}->{$_} eq "HASH" ) {
+            my $a = $_;
+            foreach (keys %{$response->{Response}->{OperationResponse}->{$a}}) {
+                $results{$a}{$_} = $response->{Response}->{OperationResponse}->{$a}->{$_};
+            }
+        }
+        else {
+            $results{$_} = $response->{Response}->{OperationResponse}->{$_};
+        }
+    }
+    return \%results;
 }
 
 =head2 username_available
