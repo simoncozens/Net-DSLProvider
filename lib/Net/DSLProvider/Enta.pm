@@ -231,6 +231,26 @@ sub services_available {
     return { "" => "" };
 }
 
+=head2 username_available
+
+    $enta->username_available( username => 'abcdef' );
+
+Returns true if the specified username is available to be used for a 
+customer ADSL login at Enta.
+
+=cut
+
+sub username_available {
+    my ($self, $args) = @_;
+    die "You must provide the username parameter" unless $args->{"username"};
+
+    my $response = $self->make_request("CheckUsernameAvailable", 
+        { "username" => $args->{"username"} } );
+
+    return undef if $response->{Response}->{OperationResponse}->{Available} eq "false";
+    return 1;
+}
+
 =head2 line_check
     
     $enta->line_check( cli => '02072221111', mac => 'ABCD123456/XY12Z' );

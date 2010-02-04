@@ -118,6 +118,7 @@ sub request_xml {
     };
     $recurse->($formats{$method}, $data); 
     $xml .= "</Request>\n";
+
     return $xml;
 }
 
