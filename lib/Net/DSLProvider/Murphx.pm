@@ -1,4 +1,6 @@
 package Net::DSLProvider::Murphx;
+use strict;
+use warnings;
 use HTML::Entities qw(encode_entities_numeric);
 use base 'Net::DSLProvider';
 use constant ENDPOINT => "https://xml.xps.murphx.com/";
@@ -215,10 +217,9 @@ details of the test result fields.
 =cut
 
 sub woosh_response {
-    my ($self, $args) = @_;
-    die "You must provide the woosh-id parameter" unless $args->{"woosh-id"};
-
-    my $response = $self->make_request("woosh_response", $args);
+    my ($self, %args) = @_;
+    die "You must provide the woosh-id parameter" unless $args{"woosh-id"};
+    my $response = $self->make_request("woosh_response", \%args);
 
     my %results = ();
     foreach ( keys %{$response->{block}->{block}} ) {
@@ -247,11 +248,9 @@ The array elements are sorted by date with the most recent being first.
 =cut
 
 sub woosh_list {
-    my ($self, $service) = @_;
-    die "You must provide the woosh-id parameter" unless $args->{"woosh-id"};
-    return undef unless $service;
-
-    my $response = $self->make_request("woosh_list", $args);
+    my ($self, %args) = @_;
+    die "You must provide the woosh-id parameter" unless $args{"woosh-id"};
+    my $response = $self->make_request("woosh_list", \%args);
 
     my @list = ();
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
@@ -401,7 +400,7 @@ sub service_auth_log {
     } else {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
-            $a{$_} = $r->{block}->{block}->{a}->{$_}->{content};
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
         }
         push @auth, \%a;
     }
@@ -441,7 +440,7 @@ sub service_session_log {
     } else {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
-            $a{$_} = $r->{block}->{block}->{a}->{$_}->{content};
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
         }
         push @sessions, \%a;
     }
@@ -973,7 +972,7 @@ sub order {
             max-interleaving test-mode inclusive-transfer mac losing-isp/;
 
     my $response = undef;
-    if ( defined $data-in->{"mac"} && defined $data-in->{"losing-isp"} ) {
+    if ( defined $data_in->{"mac"} && defined $data_in->{"losing-isp"} ) {
         $response = $self->make_request("migrate", $data);
     } else {
         $response = $self->make_request("provide", $data);
