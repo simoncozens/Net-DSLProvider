@@ -176,12 +176,12 @@ Returns order-id for the modify order.
 =cut
 
 sub modify {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/ service-id client-ref myref prod-id crd care-level inclusive-transfer test-mode /) {
-        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("modify", $args);
+    my $response = $self->make_request("modify", \%args);
 
     return $response->{a}->{"order-id"}->{content};
 }
@@ -199,12 +199,12 @@ Returns 1 for successful password change.
 =cut
 
 sub change_password {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/service-id password/) {
-        if ( !$args->{$_} ) { die "You must provide the $_ parameter"; }
+        if ( !$args{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("change_password", $args);
+    my $response = $self->make_request("change_password", \%args);
 
     return 1;
 }
@@ -669,12 +669,12 @@ Returns an array each element of which is a hash continaing the following data:
 =cut
 
 sub service_eventlog_changes {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for ( qw/ start-date stop-date /) {
-        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        if (!$arg{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_eventlog_changes", $args);
+    my $response = $self->make_request("service_eventlog_changes", \%args);
 
     my @changes = ();
     if ( ref $response->{block}->{block} eq 'ARRAY' ) {
@@ -863,10 +863,10 @@ exceeded its usage cap. See the Murphx documentation for details.
 =cut
 
 sub services_overusage {
-    my ($self, $args) = @_;
-    die "You must provide the period parameter" unless $args->{"period"};
+    my ($self, %args) = @_;
+    die "You must provide the period parameter" unless $args{"period"};
 
-    my $response = $self->make_request("services_overusage", $args);
+    my $response = $self->make_request("services_overusage", \%args);
 
     my @services = ();
     if ( ref $response->{block} eq "ARRAY" ) {
