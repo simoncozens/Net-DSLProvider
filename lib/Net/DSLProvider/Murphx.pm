@@ -671,7 +671,7 @@ Returns an array each element of which is a hash continaing the following data:
 sub service_eventlog_changes {
     my ($self, %args) = @_;
     for ( qw/ start-date stop-date /) {
-        if (!$arg{$_}) { die "You must provide the $_ parameter"; }
+        if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
     my $response = $self->make_request("service_eventlog_changes", \%args);
