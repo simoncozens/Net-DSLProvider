@@ -23,3 +23,6 @@ like($account->request_xml(provide => {
     customer => { forename => "Test", surname => "User" } }), 
 qr{<block name="customer">\s*<a name="forename" format="text">Test</a>\s*<a name="surname" format="text">User</a>\s*</block>\s*<block name="order">\s*<a name="client-ref" format="text">test</a>\s*<block name="attributes">\s*<a name="fixed-ip" format="yesno">N</a>\s*</block>\s*</block>\s*</Request>}sm,
     "Complex request looks good");
+
+like($account->request_xml(availability => { cli => "1234", detailed =>
+"N", ordertype => "migrate"}), qr/>1234</, "Availability test");

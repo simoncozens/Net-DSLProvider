@@ -11,35 +11,34 @@ __PACKAGE__->mk_accessors(qw/clientid/);
 
 my %formats = (
     selftest => { sysinfo => { type => "text" }},
-    availability => { "" => {  cli => "phone", detailed => "yesno",
-        ordertype => "text" } },
-    order_status => { "" => { "order-id" => "counting" } },
-    order_eventlog_history => { "" => { "order-id" => "counting" }},
-    order_eventlog_changes => { "" => { "date" => "datetime" } },
-    woosh_request_oneshot => { "" => { "service-id" => "counting",
+    availability => { cli => "phone", detailed => "yesno", ordertype => "text"},
+    order_status => {"order-id" => "counting" },
+    order_eventlog_history => { "order-id" => "counting" },
+    order_eventlog_changes => { "date" => "datetime" },
+    woosh_request_oneshot => {  "service-id" => "counting",
         "fault-type" => "text", "has-worked" => "yesno", "disruptive" => "yesno",
-        "fault-time" => "datetime" } },
-    woosh_list => { "" => { "service-id" => "counting" } },
-    woosh_response => { "" => { "woosh-id" => "counting" } },
-    change_password => { "" => { "service-id" => "counting", "password" => "password" } },
-    service_details => { "" => { "service-id" => "counting", "detailed" => "yesno" } },
-    service_status => { "" => { "service-id" => "counting", "order-id" => "counting" } },
-    service_view => { "" => { "service-id" => "counting" } },
-    service_usage_summary => { "" => { "service-id" => "counting", 
-        "year" => "counting", "month" => "text" } },
-    service_auth_log => { "" => { "service-id" => "counting", "rows" => "counting" } },
-    service_session_log => { "" => { "service-id" => "counting", "rows" => "counting" } },
-    service_eventlog_changes => { "" => { "start-date" => "datetime", "stop-date" => "datetime" } },
-    service_eventlog_history => { "" => { "service-id" => "counting" } },
-    service_terminate_session => { "" => { "service-id" => "counting" } },
-    services_overusage => { "" => { "period" => "text", "limit" => "counting" } },
-    speed_limit_enable => { "" => { "upstream-limit" => "counting", 
-        "downstream-limit" => "counting", "service-id" => "counting" } },
-    speed_limit_disable => { "" => { "service-id" => "counting" } },
-    speed_limit_status => { "" => { "service-id" => "counting" } },
-    service_suspend => { "" => { "service-id" => "counting", "reason" => "text" } },
-    service_unsuspend => { "" => { "service-id" => "counting" } },
-    requestmac => { "" => { "service-id" => "counting", "reason" => "text" } },
+        "fault-time" => "datetime" },
+    woosh_list => { "service-id" => "counting" },
+    woosh_response => { "woosh-id" => "counting" },
+    change_password => { "service-id" => "counting", "password" => "password" },
+    service_details => { "service-id" => "counting", "detailed" => "yesno" },
+    service_status => { "service-id" => "counting", "order-id" => "counting" },
+    service_view => { "service-id" => "counting" },
+    service_usage_summary => { "service-id" => "counting", 
+        "year" => "counting", "month" => "text" },
+    service_auth_log => { "service-id" => "counting", "rows" => "counting" },
+    service_session_log => { "service-id" => "counting", "rows" => "counting" },
+    service_eventlog_changes => { "start-date" => "datetime", "stop-date" => "datetime" },
+    service_eventlog_history => { "service-id" => "counting" },
+    service_terminate_session => { "service-id" => "counting" },
+    services_overusage => { "period" => "text", "limit" => "counting" },
+    speed_limit_enable => { "upstream-limit" => "counting", 
+        "downstream-limit" => "counting", "service-id" => "counting" },
+    speed_limit_disable => { "service-id" => "counting" },
+    speed_limit_status => { "service-id" => "counting" },
+    service_suspend => { "service-id" => "counting", "reason" => "text" },
+    service_unsuspend => { "service-id" => "counting" },
+    requestmac => { "service-id" => "counting", "reason" => "text" },
     cease => {
         order => {
             "service-id" => "counting", "reason" => "text",
@@ -160,7 +159,7 @@ sub services_available {
         $services{$a->{a}->{'product-id'}->{content}} = 
             $a->{a}->{'first-date-text'}->{content};
     }
-    return \%services;
+    return %services;
 }
 
 =head2 modify
