@@ -142,6 +142,13 @@ sub make_request {
     return $resp_o;
 }
 
+=head2 services_available
+
+Takes a phone number and returns an hash of services, linked to the
+earliest possible provision date for each service.
+
+=cut
+
 sub services_available {
     my ($self, $number) = @_;
     my $response = $self->make_request("availability", { 
@@ -177,7 +184,7 @@ sub modify {
 
     my $response = $self->make_request("modify", $args);
 
-    return { "order-id" => $response->{a}->{"order-id"}->{content} };
+    return $response->{a}->{"order-id"}->{content};
 }
 
 =head2 change_password 
@@ -200,26 +207,27 @@ sub change_password {
 
     my $response = $self->make_request("change_password", $args);
 
-    return { "success" > 1 };
+    return 1;
 }
 
 =head2 woosh_response
 
-    $murphx->woosh_response( "woosh-id" => "12345" );
+    $murphx->woosh_response( "12345" );
 
-Obtains the results of a Woosh test, previously requested using request_woosh(). Takes
-the ID of the woosh test as it's only parameter. Note that this will only return results
-for completed Woosh tests. Use woosh_list() to determine if the woosh test is completed.
+Obtains the results of a Woosh test, previously requested using
+request_woosh(). Takes the ID of the woosh test as its only parameter.
+Note that this will only return results for completed Woosh tests. Use
+woosh_list() to determine if the woosh test is completed.
 
-Returns an hash containing a hash for each set of test results. See Murphx documentation for 
-details of the test result fields.
+Returns an hash containing a hash for each set of test results. See
+Murphx documentation for details of the test result fields.
 
 =cut
 
 sub woosh_response {
-    my ($self, %args) = @_;
-    die "You must provide the woosh-id parameter" unless $args{"woosh-id"};
-    my $response = $self->make_request("woosh_response", \%args);
+    my ($self, $id) = @_;
+    die "You must provide the woosh-id parameter" unless $id;
+    my $response = $self->make_request("woosh_response", { "woosh-id" => $id });
 
     my %results = ();
     foreach ( keys %{$response->{block}->{block}} ) {
@@ -233,14 +241,16 @@ sub woosh_response {
 
 =head2 woosh_list
 
-    $murphx->woosh_list( "woosh-id" => "12345" );
+    $murphx->woosh_list( "12345" );
 
-Obtain a list of all woosh tests requested for the given service-id and their status.
+Obtain a list of all woosh tests requested for the given service-id and
+their status.
 
 Requires service-id as the single parameter.
 
-Returns an array each element of which is a hash containing the following fields for each requested
-Woosh test:
+Returns an array, each element of which is a hash containing the
+following fields for each requested Woosh test:
+
     service-id woosh-id start-time stop-time status
 
 The array elements are sorted by date with the most recent being first.
@@ -248,9 +258,9 @@ The array elements are sorted by date with the most recent being first.
 =cut
 
 sub woosh_list {
-    my ($self, %args) = @_;
-    die "You must provide the woosh-id parameter" unless $args{"woosh-id"};
-    my $response = $self->make_request("woosh_list", \%args);
+    my ($self, $id) = @_;
+    die "You must provide the woosh-id parameter" unless $id;
+    my $response = $self->make_request("woosh_list", { "woosh-id" => $id });
 
     my @list = ();
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
@@ -269,7 +279,7 @@ sub woosh_list {
         push @list, \%a;
     }
 
-    return { "woosh-list" => @list };
+    return @list;
 }
 
 =head2 request_woosh
@@ -288,28 +298,29 @@ sub request_woosh { goto &woosh_request_oneshot; }
     $murphx->woosh_request_oneshot( "service-id" => "12345", "fault-type" => "EPP",
         "has-worked" => "Y", "disruptive" => "Y", "fault-time" => "2007-01-04 15:33:00");
 
-Places a request for  Woosh test to be run on the given service. Parameters are passed as
-a hash which must contain:
+Places a request for  Woosh test to be run on the given service.
+Parameters are passed as a hash which must contain:
+
     service-id - ID of the service
     fault-type - Type of fault to check. See Murphx documentation for available types
     has-worked - Y if the service has worked in the past, N if it has not
     disruptive - Y to allow Woosh to run a test which will be disruptive to the service.
     fault-time - date and time (ISO format) the fault occured
 
-Returns a scalar which is the id of the woosh test. Use woosh_response with this id to get the results
-of the Woosh test.
+Returns a scalar which is the id of the woosh test. Use woosh_response
+with this id to get the results of the Woosh test.
 
 =cut
 
 sub woosh_request_oneshot {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/ service-id fault-type has-worked disruptive fault-time /) {
-        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("woosh_request_oneshot", $args);
+    my $response = $self->make_request("woosh_request_oneshot", \%args);
 
-    return { "woosh-id" => $response->{a}->{"woosh-id"}->{content} };
+    return $response->{a}->{"woosh-id"}->{content};
 }
 
 =head2 order_updates_since
@@ -334,10 +345,10 @@ The return is an date/time sorted array of hashes each of which contains the fol
 =cut
 
 sub order_eventlog_changes {
-    my ($self, $args) = @_;
-    die "You must provide the date parameter" unless $args->{"date"};
+    my ($self, %args) = @_;
+    die "You must provide the date parameter" unless $args{"date"};
 
-    my $response = $self->make_request("woosh_request_oneshot", $args);
+    my $response = $self->make_request("order_eventlog_changes", \%args);
 
     my @updates = ();
 
@@ -356,7 +367,7 @@ sub order_eventlog_changes {
         }
         push @updates, \%a;
     }
-    return { "updates" => @updates };
+    return @updates;
 }
 
 =head2 auth_log
@@ -381,12 +392,12 @@ Returns an array, each element of which is a hash containing:
 =cut
 
 sub service_auth_log {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/service-id rows/) {
-        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_auth_log", $args);
+    my $response = $self->make_request("service_auth_log", \%args);
 
     my @auth = ();
     if ( ref $response->{block} eq "ARRAY" ) {
@@ -405,28 +416,29 @@ sub service_auth_log {
         push @auth, \%a;
     }
 
-    return { "logs" => \@auth };
+    return @auth;
 }
 
 =head2 service_session_log
 
     $murphx->service_session_log( "session-id" => "12345", "rows" => "5" );
 
-Gets the last entries in the session log for the service. The number of entries is specified in 
-the "rows" parameter.
+Gets the last entries in the session log for the service. The number of
+entries is specified in the "rows" parameter.
 
 Returns an array each element of which is a hash containing:
+
     username start-time stop-time duration input-octets output-octets termination-reason
 
 =cut
 
 sub service_session_log {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/service-id rows/) {
-        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
+        if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_session_log", $args);
+    my $response = $self->make_request("service_session_log", \%args);
 
     my @sessions = ();
     if ( ref $response->{block} eq "ARRAY" ) {
@@ -444,7 +456,7 @@ sub service_session_log {
         }
         push @sessions, \%a;
     }
-    return { "session-log" =>  @sessions };
+    return @sessions;
 }
 
 =head2 usage_summary 
@@ -464,34 +476,36 @@ sub usage_summary { goto &service_usage_summary; }
 Gets a summary of usage in the given month. Inputs are service-id, year, month.
 
 Returns a hash with the following fields:
-    year, month, username, total-sessions, total-session-time, total-input-octets,
-    total-output-octets
+
+    year, month, username, total-sessions, total-session-time,
+    total-input-octets, total-output-octets
 
 Input octets are upload bandwidth. Output octets are download bandwidth.
 
-Be warned that the total-input-octets and total-output-octets fields returned appear
-to be MB rather than octets contrary to the Murphx documentation. 
+Be warned that the total-input-octets and total-output-octets fields
+returned appear to be MB rather than octets contrary to the Murphx
+documentation. 
 
 =cut
 
 sub service_usage_summary {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/ service-id year month /) {
-        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_usage_summary", $args);
+    my $response = $self->make_request("service_usage_summary", \%args);
 
     my %usage = ();
     foreach ( keys %{$response->{block}->{a}} ) {
         $usage{$_} = $response->{block}->{a}->{$_}->{content};
     }
-    return \%usage;
+    return %usage;
 }
 
 =head2 service_terminate_session
 
-    $murphx->service_terminate_session( "service-id" => "12345" );
+    $murphx->service_terminate_session( "12345" );
 
 Terminates the current session on the given service-id.
 
@@ -500,12 +514,13 @@ Returns 1 if successful
 =cut
 
 sub service_terminate_session {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("service_terminate_session", $args);
+    my $response = $self->make_request("service_terminate_session",
+        {"service-id" => $id});
 
-    return { "success" => 1 };
+    return 1;
 }
 
 =head2 cease
@@ -522,73 +537,73 @@ Returns order-id which is the ID of the cease order for tracking purposes.
 =cut
 
 sub cease {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/service-id crd client-ref/) {
-        if (!$args->{$_}) { die "You must provide the $_ parameter"; }
-        }
+        if (!$args{$_}) { die "You must provide the $_ parameter"; }
+    }
 
-    my $response = $self->make_request("cease", $args);
-
-    return { "order-id" => $response->{a}->{"order-id"}->{content} };
+    my $response = $self->make_request("cease", \%args);
+    return $response->{a}->{"order-id"}->{content};
 }
 
 =head2 requestmac
 
     $murphx->requestmac( "service-id" => '12345', "reason" => "EU wishes to change ISP" );
 
-Obtains a MAC for the given service. Parameters are service-id and reason the customer
-wants a MAC. 
+Obtains a MAC for the given service. Parameters are service-id and
+reason the customer wants a MAC. 
 
 Returns a hash comprising: mac, expiry-date
 
 =cut
 
 sub requestmac {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/service-id reason/) {
-        if ( ! $args->{$_} ) { die "You must provide the $_ parameter"; }
+        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
         }
 
-    my $response = $self->make_request("requestmac", $args);
+    my $response = $self->make_request("requestmac", \%args);
 
-    my %mac = ();
-
-    $mac{"mac"} = $response->{a}->{"mac"}->{content};
-    $mac{"expiry-date"} = $response->{a}->{"expiry-date"}->{content};
-
-    return \%mac;
+    return (
+        mac => $response->{a}->{"mac"}->{content},
+        "expiry-date" => $response->{a}->{"expiry-date"}->{content}
+    );
 }
 
 =head2 service_status
 
-    $murphx->service_status( "service-id" => "12345" );
+    $murphx->service_status( "12345" );
 
-Gets the current status for the given service. Requires "service-id".
+Gets the current status for the given service id.
 
 Returns a hash containing:
-    live, username, ip-address, session-established, session-start-date, ping-test,
-    average-latency
+
+    live, username, ip-address, session-established, session-start-date,
+    ping-test, average-latency
 
 =cut
 
 sub service_status {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
-
-    my $response = $self->make_request("service_status", $args);
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
+    my $response = $self->make_request("service_status", 
+        { "service-id" => $id });
 
     my %status = ();
     foreach ( keys %{$response->{block}->{a}} ) {
         $status{$_} = $response->{block}->{a}->{$_}->{content};
     }
-    return \%status
+    return %status
 }
 
 =head2 service_history
 
-    $murphx->service_history( "service-id" => "12345" );
+   $murphx->service_history( "12345" );
 
-Returns the full history for the given service as an array each element of which is a hash:
+Returns the full history for the given service as an array each element
+of which is a hash:
+
     order-id name date value
 
 =cut
@@ -597,20 +612,22 @@ sub service_history { goto &service_eventlog_history; }
 
 =head2 service_eventlog_history
 
-$murphx->service_eventlog_history( "service-id" => "12345" );
+$murphx->service_eventlog_history( "12345" );
 
-Returns the full history for the given service as an array each element of which is a hash:
+Returns the full history for the given service as an array each element
+of which is a hash:
+
     order-id name date value
 
 =cut
 
 sub service_eventlog_history {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
-
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
     my @history = ();
 
-    my $response = $self->make_request("service_eventlog_history", $args);
+    my $response = $self->make_request("service_eventlog_history",
+        {"service-id" => $id });
 
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
         while ( my $a = pop @{$response->{block}->{block}} ) {
@@ -627,7 +644,7 @@ sub service_eventlog_history {
         }
         push @history, \%a;
     }
-    return { "history" => @history };
+    return @history;
 }
 
 =head2 services_history
@@ -635,6 +652,7 @@ sub service_eventlog_history {
     $murphx->services_history( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
 
 Returns an array each element of which is a hash continaing the following data:
+
     service-id order-id date name value
 
 =cut
@@ -646,6 +664,7 @@ sub services_history { goto &service_eventlog_changes; }
     $murphx->service_eventlog_changes( "start-date" => "2007-01-01", "stop-date" => "2007-02-01" );
 
 Returns an array each element of which is a hash continaing the following data:
+
     service-id order-id date name value
 
 =cut
@@ -674,32 +693,33 @@ sub service_eventlog_changes {
         }
         push(@changes, \%u);
     }
-    return { "history" => @changes };
+    return @changes;
 }
 
-sub order_history { goto &order_eventlog_history; }
 
 =head2 order_status
 
-    $murphx->order_status( "order-id" => '12345' );
+    $murphx->order_status( '12345' );
 
-Get's status of an order. Input is the order-id from Murphx
+Gets status of an order. Input is the order-id from Murphx
 
 Returns a hash containing a hash order and a hash customer
 The order hash contains:
+
     order-id, service-id, client-ref, order-type, cli, service-type, service,
     username, status, start, finish, last-update
 
 The customer hash contains:
+
     forename, surname, address, city, county, postcode, telephone, building
 
 =cut
 
 sub order_status {
-    my ($self, $args) = @_;
-    die "You must provide the order-id parameter" unless $args->{"order-id"};
+    my ($self, $id) = @_;
+    die "You must provide the order-id parameter" unless $id;
     
-    my $response = $self->make_request("order_status", $args);
+    my $response = $self->make_request("order_status", { "order-id" => $id });
 
     my %order = ();
     foreach (keys %{$response->{block}->{order}->{a}} ) {
@@ -708,18 +728,18 @@ sub order_status {
     foreach (keys %{$response->{block}->{customer}->{a}} ) {
         $order{customer}{$_} = $response->{block}->{customer}->{a}->{$_}->{content};
         }
-    return \%order;
+    return %order;
 }
 
 =head2 service_view
 
-    $murphx->service_details ( "service-id" => '12345' );
+    $murphx->service_details ( '12345' );
 
 Combines the data from service_details, service_history and service_options
 
 Returns a hash as follows:
 
-    %service = {    "service-details" => {
+    %service = (    "service-details" => {
                         service-id => "", product-id => "", 
                         ... },
                     "service-options" => {
@@ -732,17 +752,17 @@ Returns a hash as follows:
                         ] },
                     "customer-details" => {
                         "title" => "", "forename", ... }
-                }
+                )
 
 See Murphx documentation for full details
 
 =cut
 
 sub service_view {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
     
-    my $response = $self->make_request("service_details", $args);
+    my $response = $self->make_request("service_details", {"service-id" => $id});
 
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
@@ -763,12 +783,12 @@ sub service_view {
             }
         }
     }
-    return \%service;
+    return %service;
 }
 
 =head2 service_details 
 
-    $murphx->service_details( "service-id" => '12345' );
+    $murphx->service_details( '12345' );
 
 Obtains details of the service identified by "service-id" from Murphx
 
@@ -780,21 +800,32 @@ Returns a hash with details including (but not limited to):
 =cut
 
 sub service_details {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("service_details", $args);
+    my $response = $self->make_request("service_details", {"service-id" => $id});
 
     my %details = ();
     foreach (keys %{$response->{block}->{a}} ) {
         $details{$_} = $response->{block}->{a}->{$_}->{content};
         }
-    return \%details;
+    return %details;
 }
+
+=head2 order_history
+
+    $murphx->order_history( 12345 );
+
+Alias to C<order_eventlog_history>
+
+=cut
+
+
+sub order_history { goto &order_eventlog_history; }
 
 =head2 order_eventlog_history
     
-    $murphx->order_eventlog_history( "order-id" => 12345 );
+    $murphx->order_eventlog_history( 12345 );
 
 Gets order history
 
@@ -834,7 +865,7 @@ exceeded its usage cap. See the Murphx documentation for details.
 
 sub services_overusage {
     my ($self, $args) = @_;
-    die "You must return the period parameter" unless $args->{"period"};
+    die "You must provide the period parameter" unless $args->{"period"};
 
     my $response = $self->make_request("services_overusage", $args);
 
@@ -854,18 +885,26 @@ sub services_overusage {
         }
         push @services, \%a;
     }
-    return { "services" => @services };
+    return @services;
 }
 
+=head2 speed_limit_status
+
+    $murphx->speed_limit_status( 12345 );
+
+Returns either a hash reference or a description of the speed limit
+status.
+
+=cut
+
 sub speed_limit_status {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("speed_limit_status", $args);
+    my $response = $self->make_request("speed_limit_status",
+        {"service-id" => $id});
 
-    if ( $response->{a}->{content} ) {
-        return $response->{a}->{content};
-    }
+    if ( $response->{a}->{content} ) { return $response->{a}->{content}; }
     else {
         my %status = ();
         foreach (keys %{$response->{a}} ) {
@@ -875,44 +914,75 @@ sub speed_limit_status {
     }
 }
 
+=head2 speed_limit_enable
+
+    $murphx->speed_limit_enable( "service-id" => 12345,
+        "upstream-limit" => "768",
+        "downstream-limit" => "768",
+    );
+
+Set speed limits for the given service.
+
+=cut
+
 sub speed_limit_enable {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for ( qw/service-id upstream-limit downstream-limit/ ) {
-        die "You must provide the $_ parameter" unless $args->{$_};
+        die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $response = $self->make_request("speed_limit_enable", $args);
-
+    my $response = $self->make_request("speed_limit_enable", \%args);
     return 1;
 }
 
+=head2 speed_limit_disable
+
+    $murphx->speed_limit_disable( 12345 );
+
+Turn off speed limits for the given service.
+
+=cut
 
 sub speed_limit_disable {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("speed_limit_disable", $args);
-
+    my $response = $self->make_request("speed_limit_disable", {"service-id"=> $id});
     return 1;
 }
+
+=head2 service_unsuspend
+
+    $murphx->service_unsuspend( 12345 );
+
+Unsuspend this broadband service.
+
+=cut
 
 sub service_unsuspend {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" unless $args->{"service-id"};
+    my ($self, $id) = @_;
+    die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("service_unsuspend", $args);
-
+    my $response = $self->make_request("service_unsuspend", {"service-id"=> $id});
     return 1;
 }
 
+=head2 service_suspend
+
+    $murphx->service_suspend( "service-id" => 12345, 
+                              reason => "I don't like them");
+
+Suspend this broadband service for the given reason.
+
+=cut
+
 sub service_suspend {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for ( qw/service-id reason/) {
-        die "You must provide the $_ parameter" unless $args->{$_};
+        die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $response = $self->make_request("service_suspend", $args);
-
+    my $response = $self->make_request("service_suspend", \%args);
     return 1;
 }
 
@@ -944,6 +1014,11 @@ guide:
     title street company mobile email fax sub-premise fixed-ip routed-ip
     allocation-size hardware-product max-interleaving test-mode
     inclusive-transfer
+
+If a C<mac> and C<losing-isp> is passed, then the order is understood as a
+migration rather than a provision.
+
+Returns a hash describing the order.
 
 =cut
 
@@ -982,7 +1057,7 @@ sub order {
     foreach ( keys %{$response->{a}} ) {
         $order{$_} = $response->{a}->{$_}->{content};
     }
-    return \%order;
+    return %order;
 }
 
 1;
