@@ -12,7 +12,7 @@ isa_ok($account, "Net::DSLProvider");
 is($account->user => $ENV{MURPHX_USERNAME});
 
 like($account->request_xml(selftest => { sysinfo => { type => "module" }}), 
-qr/<block name="sysinfo">\n<a name="type" format="text">module</,
+qr/<block name="sysinfo">\s*<a name="type" format="text">module</,
 "Request looks good");
 
 like($account->request_xml(provide => {
@@ -21,16 +21,5 @@ like($account->request_xml(provide => {
         "client-ref" => "test"
     },
     customer => { forename => "Test", surname => "User" } }), 
-qr{<block name="customer">
-<a name="forename" format="text">Test</a>
-<a name="surname" format="text">User</a>
-</block>
-<block name="order">
-<a name="client-ref" format="text">test</a>
-<block name="attributes">
-<a name="fixed-ip" format="yesno">N</a>
-</block>
-</block>
-</Request>
-},
+qr{<block name="customer">\s*<a name="forename" format="text">Test</a>\s*<a name="surname" format="text">User</a>\s*</block>\s*<block name="order">\s*<a name="client-ref" format="text">test</a>\s*<block name="attributes">\s*<a name="fixed-ip" format="yesno">N</a>\s*</block>\s*</block>\s*</Request>}sm,
     "Complex request looks good");
