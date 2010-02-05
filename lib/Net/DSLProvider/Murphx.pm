@@ -137,6 +137,7 @@ sub make_request {
     if ($self->debug) { warn "Sending request: \n".$request->as_string;}
     my $resp = $ua->request($request);
     die "Request for Murphx method $method failed: " . $resp->message if $resp->is_error;
+    if ($self->debug) { warn "Got response: \n".$resp->content;}
     my $resp_o = XMLin($resp->content);
     if ($resp_o->{status}{no} > 0) { die  $resp_o->{status}{text} };
     return $resp_o;
