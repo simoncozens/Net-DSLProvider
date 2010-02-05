@@ -11,7 +11,8 @@ __PACKAGE__->mk_accessors(qw/clientid/);
 
 my %formats = (
     selftest => { sysinfo => { type => "text" }},
-    availability => { cli => "phone", detailed => "yesno", ordertype => "text"},
+    availability => { cli => "phone", detailed => "yesno", ordertype =>
+    "text", postcode => "postcode"},
     order_status => {"order-id" => "counting" },
     order_eventlog_history => { "order-id" => "counting" },
     order_eventlog_changes => { "date" => "datetime" },
@@ -143,9 +144,9 @@ sub make_request {
 
 =head2 services_available
 
-Takes a phone number and returns an hash of services; for each service,
-the hash key is the service ID. The value is another hash containing
-keys:
+Takes a phone number or a postcode and returns an hash of services; for
+each service, the hash key is the service ID. The value is another hash
+containing keys:
 
     first-date
     product-name
@@ -154,9 +155,12 @@ keys:
 
 sub services_available {
     my ($self, $number) = @_;
-    my $response = $self->make_request("availability", { 
-        cli => $number, detailed => "N", ordertype => "migrate" 
-    });
+    my %args = (
+        detailed => "N", ordertype => "migrate" 
+    );
+    if ($number =~ /^[\d\s]+$/) { $args{cli} = $number }
+        else { $args{postcode} = $number }
+    my $response = $self->make_request("availability", \%args);
 
     my %services;
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
