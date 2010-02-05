@@ -143,8 +143,12 @@ sub make_request {
 
 =head2 services_available
 
-Takes a phone number and returns an hash of services, linked to the
-earliest possible provision date for each service.
+Takes a phone number and returns an hash of services; for each service,
+the hash key is the service ID. The value is another hash containing
+keys:
+
+    first-date
+    product-name
 
 =cut
 
@@ -156,8 +160,17 @@ sub services_available {
 
     my %services;
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
-        $services{$a->{a}->{'product-id'}->{content}} = 
+        $services{$a->{a}->{'product-id'}->{content}}->{"first-date"} = 
             $a->{a}->{'first-date-text'}->{content};
+    }
+    
+    while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
+        my $pid = $a->{a}{'product-id'}->{content};
+        if (exists $services{$pid}) {
+            # Copy anything else we want here
+            $services{$pid}->{"product-name"} =
+                $a->{a}{'product-name'}{content};
+        }
     }
     return %services;
 }
