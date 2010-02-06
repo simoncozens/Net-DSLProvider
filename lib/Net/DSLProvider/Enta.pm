@@ -235,8 +235,10 @@ sub serviceid {
 
     $enta->services_available ( { cli => "02072221122" } );
 
-returns a list of which services are available:
+returns a hash the keys of which line speeds available:
     FIXED500, FIXED1000, FIXED2000, RA8, RA24
+
+and the values are the maximum estimated download speed.
 
 =cut
 
@@ -252,26 +254,27 @@ sub services_available {
         $details->{RateAdaptive}->{RAG} eq "R" );
 
     my %avail = ();
+    $avail{"adslcheck"} = $details;
 
-    $avail{"RA8"} = "ADSL MAX up to 8Mb/s" unless $details->{Max}->{RAG} eq "R";
+    $avail{"RA8"} = $details->{Max}->{Speed} unless $details->{Max}->{RAG} eq "R";
 
     if ( $details->{FixedRate}->{RAG} =~ /(R|A|G)/ && 
         $details->{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
-        $avail{"FIXED500"} = "Fixed 512Kb/s";
+        $avail{"FIXED500"} = "512";
     }
 
     if ( $details->{FixedRate}->{RAG} =~ /(A|G)/ &&
         $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED1000"} = "Fixed 1Mb/s";
+        $avail{"FIXED1000"} = "1024";
     }
 
     if ( $details->{FixedRate}->{RAG} eq "G" && 
         $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED2000"} = "Fixed 2Mb/s";
+        $avail{"FIXED2000"} = "2048";
     }
 
     if ( $details->{WBC}->{RAG} && $details->{WBC}->{RAG} ne "R" ) {
-        $avail{"RA24"} = "ADSL2+ up to 24Mb/s";
+        $avail{"RA24"} = $details->{WBC}->{Speed};
     }
 
     return \%avail;
