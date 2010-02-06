@@ -334,42 +334,6 @@ sub username_available {
     return 1;
 }
 
-=head2 line_check
-    
-    $enta->line_check( cli => '02072221111', mac => 'ABCD123456/XY12Z' );
-
-Given a cli and, optionally, a MAC line_check will determine whether it is
-possible to provide DSL service on the line and if given a MAC it will 
-determine whether the MAC is valid.
-
-Returns details of which services are available and sets mac-valid to 1
-if the MAC is valid.
-
-=cut
-
-sub line_check {
-    my ($self, $args) = @_;
-    die "You must provide the cli parameter" unless $args->{cli};
-
-    my $data = {};
-    $data->{PhoneNo} = $args->{cli};
-    $data->{MAC} = $args->{mac} if $args->{mac};
-
-    my $response = $self->make_request("ADSLChecker", $data);
-
-    my %results = ();
-    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
-        if ( ref $response->{Response}->{OperationResponse}->{$_} eq "HASH" ) {
-            my $h = $_;
-            foreach ( %{$response->{Response}->{OperationResponse}->{$h}} ) {
-                $results{$h}{$_} = $response->{Response}->{OperationResponse}->{$h}->{$_};
-            }
-        }
-        $results{$_} = $response->{Response}->{OperationResponse}->{$_};
-    }
-    return \%results;
-}
-
 =head2 verify_mac
 
     $enta->verify_mac( cli => "02072221111", mac => "ABCD0123456/ZY21X" );
@@ -384,7 +348,7 @@ sub verify_mac {
         die "You must provide the $_ parameter" unless $args->{$_};
     }
 
-    my $line = $self->line_check( { 
+    my $line = $self->adslchecker( { 
         "cli" => $args->{cli}, 
         "mac" => $args->{mac} 
         } );
