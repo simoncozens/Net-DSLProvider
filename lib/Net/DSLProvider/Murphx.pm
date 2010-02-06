@@ -750,7 +750,7 @@ sub order_status {
 
 =head2 service_view
 
-    $murphx->service_details ( '12345' );
+    $murphx->service_view ( '12345' );
 
 Combines the data from service_details, service_history and service_options
 
