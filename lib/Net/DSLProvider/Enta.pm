@@ -230,70 +230,15 @@ sub serviceid {
     return { "Telephone" => $args->{"telephone"} } if $args->{"telephone"};
 }
 
-
-=head2 services_available
-
-    $enta->services_available ( { cli => "02072221122" } );
-
-returns a list of which services are available:
-    FIXED500, FIXED1000, FIXED2000, RA8, RA24
-
-=cut
+# Onto the meat of it. 
+# 
+# Informational methods
 
 sub services_available {
-    my ($self, $args) = @_;
-    die "You must supply the cli parameter" unless $args->{"cli"};
-
-    my $details = $self->adslchecker( {cli=>$args->{"cli"}} );
-
-    return undef unless $details->{ErrorCode} eq "0";
-
-    return undef if ( $details->{FixedRate}->{RAG} eq "R" &&
-        $details->{RateAdaptive}->{RAG} eq "R" );
-
-    my %avail = ();
-
-    $avail{"RA8"} = "ADSL MAX up to 8Mb/s" unless $details->{Max}->{RAG} eq "R";
-
-    if ( $details->{FixedRate}->{RAG} =~ /(R|A|G)/ && 
-        $details->{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
-        $avail{"FIXED500"} = "Fixed 512Kb/s";
-    }
-
-    if ( $details->{FixedRate}->{RAG} =~ /(A|G)/ &&
-        $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED1000"} = "Fixed 1Mb/s";
-    }
-
-    if ( $details->{FixedRate}->{RAG} eq "G" && 
-        $details->{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED2000"} = "Fixed 2Mb/s";
-    }
-
-    if ( $details->{WBC}->{RAG} && $details->{WBC}->{RAG} ne "R" ) {
-        $avail{"RA24"} = "ADSL2+ up to 24Mb/s";
-    }
-
-    return \%avail;
-}
-
-=head2 adslchecker 
-
-    $enta->adslchecker( { cli => "02072221122", mac => "LSDA12345523/DF12D" } );
-
-Returns details from Enta's interface to the BT ADSL checker. See Enta docs
-for details of what is returned.
-
-cli parameter is required. mac is optional
-
-=cut
-
-sub adslchecker {
-    my ($self, $args) = @_;
-    die "You must supply the cli parameter" unless $args->{"cli"};
+    my ($self, %args) = @_; $self->_check_params(\%args);
 
     my $response = $self->make_request("ADSLChecker", 
-        { "PhoneNo" => $args->{cli}, "MACcode" => $args->{mac},
+        { "PhoneNo" => $args{cli}, "MACcode" => $args{mac},
           "Version" => 4 } );
 
     my %results = ();
@@ -308,8 +253,189 @@ sub adslchecker {
             $results{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
-    return \%results;
+
+    return undef unless $results{ErrorCode} eq "0";
+    return undef if ( $results{FixedRate}->{RAG} eq "R" &&
+        $results{RateAdaptive}->{RAG} eq "R" );
+
+    my @avail;
+    push @avail, {
+        product_name => "ADSL MAX up to 8Mb/s",
+        product_id   => "RA8"
+    } unless $results{Max}->{RAG} eq "R";
+
+    if ( $results{FixedRate}->{RAG} =~ /(R|A|G)/ && 
+        $results{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
+        push @avail, { product_id => "FIXED500", 
+                      product_name => "Fixed 512Kb/s" };
+    }
+
+    if ( $results{FixedRate}->{RAG} =~ /(A|G)/ &&
+        $results{RateAdaptive}->{RAG} eq "G" ) {
+        push @avail, { product_id => "FIXED1000", 
+                      product_name => "Fixed 1Mb/s" };
+    }
+
+    if ( $results{FixedRate}->{RAG} eq "G" && 
+        $results{RateAdaptive}->{RAG} eq "G" ) {
+        push @avail, { product_id => "FIXED1000", 
+                      product_name => "Fixed 2Mb/s" };
+    }
+
+    if ( $results{WBC}->{RAG} && $results{WBC}->{RAG} ne "R" ) {
+        push @avail, { product_id => "RA24", 
+                      product_name => "ADSL2+ up to 24Mb/s" };
+    }
+
+    return @avail;
 }
+
+sub order_updates_since { 
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $from = Time::Piece->strptime($args{"date"}, "%F");
+    my $now = localtime;
+
+    my $d = $now - $from;
+    my $days = int($d->days);
+    my $response = $self->make_request("GetBTFeed", {days => $days});
+
+    my @records;
+    while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
+        my %a = ();
+        foreach (keys %{$r}) {
+            if ( ref $r->{$_} eq 'HASH' ) {
+                my $b = $_;
+                foreach (keys %{$r->{$b}} ) { $a{$b}{$_} = $r->{$b}->{$_}; }
+                next;
+            }
+            $a{$_} = $r->{$_};
+        }
+        $a{order_id} = delete $a{"order-id"}; # More perlish
+        push @records, \%a;
+    }
+    return @records;
+}
+
+sub verify_mac {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $data = {};
+    $data->{PhoneNo} = $args{cli};
+    $data->{MAC} = $args{mac} if $args{mac};
+
+    my $response = $self->make_request("ADSLChecker", $data);
+
+    my %results = ();
+    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
+        if ( ref $response->{Response}->{OperationResponse}->{$_} eq "HASH" ) {
+            my $h = $_;
+            foreach ( %{$response->{Response}->{OperationResponse}->{$h}} ) {
+                $results{$h}{$_} = $response->{Response}->{OperationResponse}->{$h}->{$_};
+            }
+        }
+        $results{$_} = $response->{Response}->{OperationResponse}->{$_};
+    }
+    return undef unless $results{MAC}->{Valid};
+    return 1;
+}
+
+sub usage_summary {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $data = $self->serviceid(\%args);
+
+    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
+    # the given month and year
+    
+    # my $response = $self->make_request("", $data );
+    die "Still working on this one...";
+}
+
+sub order_history { die "Unimplemented" }
+
+# Executive methods
+
+=head2 order
+
+Additional parameters are listed below and described in the integration
+guide:
+
+    title street mobile email fax sub-premise 
+    allocation-size hardware-product max-interleaving test-mode
+    inclusive-transfer mac linespeed topup billing-period
+    contract-term initial-payment ongoing-payment payment-method
+    customer-id max-interleaving
+
+=cut
+
+sub order {
+    my ($self, %args) = @_; $self->_check_params(\%args, qw/
+        title street email allocation-size 
+        billing-period contract-term initial-payment ongoing-payment payment-method
+        mac max-interleaving customer-id
+    /);
+    if ( $args{"customer-id"} eq 'New' ) {
+        for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
+            ctelephone cemail/) {
+            die "You must provide the $_ parameter" unless $args{$_};
+        }
+    }
+
+    $args{totl} = "YES"; 
+    $args{"isdn"} = 'N';
+    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args{mac};
+    my $d = Time::Piece->strptime($args{"crd"}, "%F");
+    $args{"crd"} = $d->dmy("/");
+
+    my $data = $self->convert_input("CreateADSLOrder", \%args);
+
+    my $response = $self->make_request("CreateADSLOrder", $data);
+
+    return ( "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} );
+}
+
+sub cease {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+
+    my $data = $self->serviceid(\%args);
+    $data->{"CeaseDate"} = $args{"crd"};
+    
+    my $response = $self->make_request("CeaseADSLOrder", $data); 
+
+    die "Cease order not accepted by Enta" 
+        unless $response->{Response}->{Type} eq 'Accept';
+
+    return $response->{Response}->{OperationResponse}->{OurRef};
+}
+
+sub requestmac {
+    my ($self, $args) = @_;
+
+    my $adsl = $self->adslaccount($args);
+    if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
+        my $expires = $adsl->{"ADSLAccount"}->{"MACExpires"};
+        $expires =~ s/\+\d+//;
+        return ( "mac" => $adsl->{"ADSLAccount"}->{"MAC"},
+                 "expiry-date" => $expires );
+    }
+
+    my $data = $self->serviceid($args);
+    
+    my $response = $self->make_request("RequestMAC", $data );
+
+    return ( "requested" => 1 );
+}
+
+# Other methods
+
+=head2 interleaving
+
+    $enta->interleaving( "service-id" => "ADSL123456", "interleaving" => "No")
+
+Changes the interleaving setting on the given service
+
+=cut
+
 
 =head2 username_available
 
@@ -331,72 +457,6 @@ sub username_available {
     return 1;
 }
 
-=head2 line_check
-    
-    $enta->line_check( cli => '02072221111', mac => 'ABCD123456/XY12Z' );
-
-Given a cli and, optionally, a MAC line_check will determine whether it is
-possible to provide DSL service on the line and if given a MAC it will 
-determine whether the MAC is valid.
-
-Returns details of which services are available and sets mac-valid to 1
-if the MAC is valid.
-
-=cut
-
-sub line_check {
-    my ($self, $args) = @_;
-    die "You must provide the cli parameter" unless $args->{cli};
-
-    my $data = {};
-    $data->{PhoneNo} = $args->{cli};
-    $data->{MAC} = $args->{mac} if $args->{mac};
-
-    my $response = $self->make_request("ADSLChecker", $data);
-
-    my %results = ();
-    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
-        if ( ref $response->{Response}->{OperationResponse}->{$_} eq "HASH" ) {
-            my $h = $_;
-            foreach ( %{$response->{Response}->{OperationResponse}->{$h}} ) {
-                $results{$h}{$_} = $response->{Response}->{OperationResponse}->{$h}->{$_};
-            }
-        }
-        $results{$_} = $response->{Response}->{OperationResponse}->{$_};
-    }
-    return \%results;
-}
-
-=head2 verify_mac
-
-    $enta->verify_mac( cli => "02072221111", mac => "ABCD0123456/ZY21X" );
-
-Given a cli and MAC returns 1 if the MAC is valid.
-
-=cut
-
-sub verify_mac {
-    my ($self, $args) = @_;
-    for (qw/cli mac/) {
-        die "You must provide the $_ parameter" unless $args->{$_};
-    }
-
-    my $line = $self->line_check( { 
-        "cli" => $args->{cli}, 
-        "mac" => $args->{mac} 
-        } );
-    
-    return undef unless $line->{MAC}->{Valid};
-    return 1;
-}
-
-=head2 interleaving
-
-    $enta->interleaving( "service-id" => "ADSL123456", "interleaving" => "No")
-
-Changes the interleaving setting on the given service
-
-=cut
 
 sub interleaving {
     my ($self, $args) = @_;
@@ -531,116 +591,6 @@ sub modifylinefeatures {
     return \%return;
 }
 
-=head2 order_updates_since
-
-    $enta->order_updates_since( "date" => "2009-12-01 00:01:01" );
-
-Returns all the BT order updates since the given date
-
-=cut
-
-sub order_updates_since { 
-    my ($self, $args) = @_;
-    die "You must provide the date parameter" unless $args->{"date"};
-
-    my $from = Time::Piece->strptime($args->{"date"}, "%F");
-    my $now = localtime;
-
-    my $d = $now - $from;
-    my $days = $d->days;
-    $days =~ s/\.\d+//;
-    return &getbtfeed( "days" => $days );
-}
-
-=head2 getbtfeed
-
-    $enta->getbtfeed( "days" => "5" );
-
-Returns a list of events that have occurred on all orders since the provided date/time.
-
-The return is an date/time sorted array of hashes each of which contains the following fields:
-    order-id date name value
-
-=cut
-
-sub getbtfeed {
-    my ($self, $args) = @_;
-    die "You must provide the days parameter" unless $args->{"days"};
-
-    my $response = $self->make_request("GetBTFeed", $args);
-
-    my @records = ();
-    while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
-        my %a = ();
-        foreach (keys %{$r}) {
-            if ( ref $r->{$_} eq 'HASH' ) {
-                my $b = $_;
-                foreach (keys %{$r->{$b}} ) {
-                     $a{$b}{$_} = $r->{$b}->{$_};
-                }
-                next;
-            }
-            $a{$_} = $r->{$_};
-        }
-        push @records, \%a;
-    }
-    return { "updates" => @records };
-}
-
-
-=head2 cease
-
-    $enta->cease( "service-id" => "ADSL12345", "crd" => "1970-01-01" );
-
-Places a cease order to terminate the ADSL service completely. 
-
-=cut
-
-sub cease {
-    my ($self, $args) = @_;
-    die "You must provide the crd parameter" unless $args->{"crd"};
-    
-
-    my $data = $self->serviceid($args);
-    $data->{"CeaseDate"} = $args->{"crd"};
-    
-    my $response = $self->make_request("CeaseADSLOrder", $data); 
-
-    die "Cease order not accepted by Enta" 
-        unless $response->{Response}->{Type} eq 'Accept';
-
-    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef} };
-}
-
-=head2 requestmac
-
-    $enta->requestmac( "service-id" => 'ADSL12345');
-
-Obtains a MAC for the given service. 
-
-Returns a hash comprising: mac, expiry-date if the MAC is available or
-submits a request for the MAC which can be obtained later.
-
-=cut
-
-sub requestmac {
-    my ($self, $args) = @_;
-
-    my $adsl = $self->adslaccount($args);
-    if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
-        my $expires = $adsl->{"ADSLAccount"}->{"MACExpires"};
-        $expires =~ s/\+\d+//;
-        return { "mac" => $adsl->{"ADSLAccount"}->{"MAC"},
-                 "expiry-date" => $expires };
-    }
-
-    my $data = $self->serviceid($args);
-    
-    my $response = $self->make_request("RequestMAC", $data );
-
-    return { "Requested" => 1 };
-}
-
 =head2 auth_log
 
     $enta->auth_log( "service-id" => 'ADSL12345' );
@@ -712,86 +662,6 @@ sub adslaccount {
     return \%adsl;
 }
 
-=head2 order
-
-    $enta->order(
-        # Customer details
-        forename => "Clara", surname => "Trucker", company => "ABC Ltd",
-        building => "123", street => "Pigeon Street", city => "Manchester", 
-        county => "Greater Manchester", postcode => "M1 2JX",
-        telephone => "01614960213", email => "clare@example.com",
-        # Order details
-        clid => "01614960213", "client-ref" => "claradsl", 
-        "prod-id" => $product, crd => $leadtime, username => "claraandhugo",
-        password => "skyr153", "care-level" => "standard", 
-        realm => "surfdsl.net"
-    );
-
-Submits an order for DSL to be provided to the specified phone line.
-Note that all the parameters above must be supplied. CRD is the
-requested delivery date in YYYY-mm-dd format; you are responsible for
-computing dates after the minimum lead time. The product ID should have
-been supplied to you by Enta.
-
-Additional parameters are listed below and described in the integration
-guide:
-
-    title street company mobile email fax sub-premise fixed-ip routed-ip
-    allocation-size hardware-product max-interleaving test-mode
-    inclusive-transfer
-
-=cut
-
-sub order {
-    my ($self, $args) = @_;
-    for (qw/prod-id title forename surname street city county postcode
-        telephone email cli crd routed-ip username password linespeed
-        topup care-level billing-period contract-term initial-payment 
-        ongoing-payment payment-method totl max-interleaving 
-        customer-id/) {
-        die "You must provide the $_ parameter" unless $args->{$_};
-    }
-
-    if ( $args->{"customer-id"} eq 'New' ) {
-        for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
-            ctelephone cemail/) {
-            die "You must provide the $_ parameter" unless $args->{$_};
-        }
-    }
-
-    $args->{"isdn"} = 'N';
-    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args->{mac};
-    my $d = Time::Piece->strptime($args->{"crd"}, "%F");
-    $args->{"crd"} = $d->dmy("/");
-
-    my $data = $self->convert_input("CreateADSLOrder", $args);
-
-    my $response = $self->make_request("CreateADSLOrder", $data);
-
-    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
-}
-
-=head2 usage_summary 
-
-    $enta->usage_summary( "service-id" => "ADSL12345", "year" => '2009', "month" => '01' );
-
-=cut 
-
-sub usage_summary {
-    my ($self, $args) = @_;
-    for (qw/service-id year month/) {
-    die "You must provide the $_ parameter" unless $args->{$_}
-    }
-
-    my $data = $self->serviceid($args);
-
-    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
-    # the given month and year
-    
-    my $response = $self->make_request("", $data );
-}
 
 =head2 usagehistory 
 
@@ -815,10 +685,6 @@ sub usagehistory {
     my $response = $self->make_request("", $data );
     
 }
-
-
-
-
 
 1;
 

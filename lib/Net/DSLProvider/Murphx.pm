@@ -143,42 +143,190 @@ sub make_request {
     return $resp_o;
 }
 
-=head2 services_available
+# Onto the meat of it. 
+# 
+# Informational methods
 
-Takes a phone number or a postcode and returns an hash of services; for
-each service, the hash key is the service ID. The value is another hash
-containing keys:
+sub services_available {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    %args = ( %args, detailed => "N", ordertype => "migrate" 
+    );
+    my $response = $self->make_request("availability", \%args);
 
-    first-date
-    product-name
+    my %names;
+    while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
+        my $pid = $a->{a}{'product-id'}->{content};
+        $names{$pid} = $a->{a}{'product-name'}{content};
+    }
+
+    my @rv;
+    while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
+        push @rv,
+            { product_id   => $a->{a}->{'product-id'}->{content},
+              first_date   => $a->{a}->{'first-date-text'}->{content},
+              product_name => $names{$a->{a}->{'product-id'}->{content}}
+            };
+    }
+    return @rv;
+}
+
+sub order_updates_since { 
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $response = $self->make_request("order_eventlog_changes", \%args);
+
+    my @updates = ();
+
+    if ( ref $response->{block}->{block} eq "ARRAY" ) {
+        while (my $b = shift @{$response->{block}->{block}} ) {
+            my %a = ();
+            foreach ( keys %{$b->{a}} ) {
+                $a{$_} = $b->{a}->{$_}->{content};
+            }
+            push @updates, \%a;
+            $a{order_id} = delete $a{"order-id"};
+        }
+    } else {
+        my %a = ();
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+        }
+        $a{order_id} = delete $a{"order-id"};
+        push @updates, \%a;
+    }
+    return @updates;
+}
+
+sub verify_mac { die "Unimplemented" }
+
+sub usage_summary {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $response = $self->make_request("service_usage_summary", \%args);
+
+    my %usage = ();
+    foreach ( keys %{$response->{block}->{a}} ) {
+        $usage{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    # Be warned that the total-input-octets and total-output-octets fields
+    # returned appear to be MB rather than octets contrary to the Murphx
+    # documentation. 
+    $usage{"total-input-octets"} *= 1024*1024;
+    $usage{"total-output-octets"} *= 1024*1024;
+    return %usage;
+}
+
+sub order_history {
+    my ($self, %args) = @_; $self->_check_params(\%args);
+    my $response = $self->make_request("order_eventlog_history", \%args);
+
+    my @history = ();
+
+    while ( my $a = shift @{$response->{block}{block}} ) {
+        foreach (keys %{$a}) {
+            my %u = ();
+            $u{date} = $a->{'a'}->{'date'}->{'content'};
+            $u{name} = $a->{'a'}->{'name'}->{'content'};
+            $u{value} = $a->{'a'}->{'value'}->{'content'};
+
+            push(@history, \%u);
+        }
+    }
+    return @history;
+}
+
+# Executive methods
+
+=head2 order
+
+    $murphx->order(
+        # Customer details
+        forename => "Clara", surname => "Trucker", 
+        building => "123", street => "Pigeon Street", city => "Manchester", 
+        county => "Greater Manchester", postcode => "M1 2JX",
+        telephone => "01614960213", 
+        # Order details
+        clid => "01614960213", "client-ref" => "claradsl", 
+        "prod-id" => $product, crd => $leadtime, username => "claraandhugo",
+        password => "skyr153", "care-level" => "standard", 
+        realm => "surfdsl.net"
+    );
+
+Submits an order for DSL to be provided to the specified phone line.
+Note that all the parameters above must be supplied. CRD is the
+requested delivery date in YYYY-mm-dd format; you are responsible for
+computing dates after the minimum lead time. The product ID should have
+been supplied to you by Murphx.
+
+Additional parameters are listed below and described in the integration
+guide:
+
+    title street company mobile email fax sub-premise fixed-ip routed-ip
+    allocation-size hardware-product max-interleaving test-mode
+    inclusive-transfer
+
+If a C<mac> and C<losing-isp> is passed, then the order is understood as a
+migration rather than a provision.
+
+Returns a hash describing the order.
 
 =cut
 
-sub services_available {
-    my ($self, $number) = @_;
-    my %args = (
-        detailed => "N", ordertype => "migrate" 
-    );
-    if ($number =~ /^[\d\s]+$/) { $args{cli} = $number }
-        else { $args{postcode} = $number }
-    my $response = $self->make_request("availability", \%args);
+sub order {
+    my ($self, %args) = @_; $self->_check_params(\%args, qw/realm/ );
+    # Arrange arguments into the right blocks
+    my $data = {};
+    defined $args{$_} and $data->{customer}{$_} = $args{$_} 
+        for qw/
+            forename surname building city county postcode telephone
+            title street company mobile email fax sub-premise/;
 
-    my %services;
-    while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
-        $services{$a->{a}->{'product-id'}->{content}}->{"first-date"} = 
-            $a->{a}->{'first-date-text'}->{content};
+    defined $args{$_} and $data->{order}{$_} = $args{$_}
+        for qw/cli client-ref prod-id crd username/;
+
+    defined $args{$_} and $data->{order}{attributes}{$_} = $args{$_} 
+        for qw/fixed-ip routed-ip allocation-size hardware-product pstn-order-id
+            max-interleaving test-mode inclusive-transfer mac losing-isp
+            password realm care-level/;
+
+    my $response = undef;
+    if ( defined $args{"mac"} && defined $args{"losing-isp"} ) {
+        $response = $self->make_request("migrate", $data);
+    } else {
+        $response = $self->make_request("provide", $data);
     }
-    
-    while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
-        my $pid = $a->{a}{'product-id'}->{content};
-        if (exists $services{$pid}) {
-            # Copy anything else we want here
-            $services{$pid}->{"product-name"} =
-                $a->{a}{'product-name'}{content};
-        }
+
+    my %order = ();
+    foreach ( keys %{$response->{a}} ) {
+        $order{$_} = $response->{a}->{$_}->{content};
     }
-    return %services;
+    return %order;
 }
+
+sub cease {
+    my ($self, %args) = @_; $self->_check_params(\%args, "client-ref");
+    my $response = $self->make_request("cease", \%args);
+    return $response->{a}->{"order-id"}->{content};
+}
+
+sub requestmac {
+    my ($self, %args) = @_; $self->_check_params(\%args, "client-ref");
+    my $response = $self->make_request("requestmac", \%args);
+
+    return (
+        mac => $response->{a}->{"mac"}->{content},
+        "expiry-date" => $response->{a}->{"expiry-date"}->{content}
+    );
+}
+
+# Other methods
+
+=head2 services_overusage
+
+    $murphx->services_overusage( "period" => "", "limit" => "100" );
+
+Returns an array each element of which is a hash detailing each service which has
+exceeded its usage cap. See the Murphx documentation for details.
+
+=cut
 
 =head2 modify
 
@@ -340,62 +488,6 @@ sub woosh_request_oneshot {
     return $response->{a}->{"woosh-id"}->{content};
 }
 
-=head2 order_updates_since
-
-    $murphx->order_updates_since( "date" => "2007-02-01 16:10:05" );
-
-Alias to order_eventlog_changes
-
-=cut
-
-sub order_updates_since { goto &order_eventlog_changes; }
-
-=head2 order_eventlog_changes
-
-    $murphx->order_eventlog_changes( "date" => "2007-02-01 16:10:05" );
-
-Returns a list of events that have occurred on all orders since the provided date/time.
-
-The return is an date/time sorted array of hashes each of which contains the following fields:
-    order-id date name value
-
-=cut
-
-sub order_eventlog_changes {
-    my ($self, %args) = @_;
-    die "You must provide the date parameter" unless $args{"date"};
-
-    my $response = $self->make_request("order_eventlog_changes", \%args);
-
-    my @updates = ();
-
-    if ( ref $response->{block}->{block} eq "ARRAY" ) {
-        while (my $b = shift @{$response->{block}->{block}} ) {
-            my %a = ();
-            foreach ( keys %{$b->{a}} ) {
-                $a{$_} = $b->{a}->{$_}->{content};
-            }
-            push @updates, \%a;
-        }
-    } else {
-        my %a = ();
-        foreach (keys %{$response->{block}->{block}->{a}} ) {
-            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
-        }
-        push @updates, \%a;
-    }
-    return @updates;
-}
-
-=head2 auth_log
-
-    $murphx->auth_log( "service-id" => '12345', "rows" => "5" );
-
-Alias for service_auth_log
-
-=cut
-
-sub auth_log { goto &service_auth_log; }
 
 =head2 service_auth_log
 
@@ -408,7 +500,7 @@ Returns an array, each element of which is a hash containing:
 
 =cut
 
-sub service_auth_log {
+sub auth_log {
     my ($self, %args) = @_;
     for (qw/service-id rows/) {
         if (!$args{$_}) { die "You must provide the $_ parameter"; }
@@ -476,50 +568,6 @@ sub service_session_log {
     return @sessions;
 }
 
-=head2 usage_summary 
-
-    $murphx->usage_summary( "service-id" =>'12345', "year" => '2009', "month" => '01' );
-
-Alias for service_usage_summary()
-
-=cut 
-
-sub usage_summary { goto &service_usage_summary; }
-
-=head2 service_usage_summary
-
-    $murphx->service_usage_summary( "service-id" =>'12345', "year" => '2009', "month" => '01' );
-
-Gets a summary of usage in the given month. Inputs are service-id, year, month.
-
-Returns a hash with the following fields:
-
-    year, month, username, total-sessions, total-session-time,
-    total-input-octets, total-output-octets
-
-Input octets are upload bandwidth. Output octets are download bandwidth.
-
-Be warned that the total-input-octets and total-output-octets fields
-returned appear to be MB rather than octets contrary to the Murphx
-documentation. 
-
-=cut
-
-sub service_usage_summary {
-    my ($self, %args) = @_;
-    for (qw/ service-id year month /) {
-        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
-    }
-
-    my $response = $self->make_request("service_usage_summary", \%args);
-
-    my %usage = ();
-    foreach ( keys %{$response->{block}->{a}} ) {
-        $usage{$_} = $response->{block}->{a}->{$_}->{content};
-    }
-    return %usage;
-}
-
 =head2 service_terminate_session
 
     $murphx->service_terminate_session( "12345" );
@@ -540,53 +588,7 @@ sub service_terminate_session {
     return 1;
 }
 
-=head2 cease
-
-    $murphx->cease( "service-id" => 12345, "reason" => "This service is no longer required"
-        "client-ref" => "ABX129", "crd" => "1970-01-01", "accepts-charges" => 'Y' );
-
-Places a cease order to terminate the ADSL service completely. Takes input as a hash.
-
-Required parameters are : service-id, crd, client-ref
-
-Returns order-id which is the ID of the cease order for tracking purposes.
-
-=cut
-
-sub cease {
-    my ($self, %args) = @_;
-    for (qw/service-id crd client-ref/) {
-        if (!$args{$_}) { die "You must provide the $_ parameter"; }
-    }
-
-    my $response = $self->make_request("cease", \%args);
-    return $response->{a}->{"order-id"}->{content};
-}
-
-=head2 requestmac
-
-    $murphx->requestmac( "service-id" => '12345', "reason" => "EU wishes to change ISP" );
-
-Obtains a MAC for the given service. Parameters are service-id and
-reason the customer wants a MAC. 
-
-Returns a hash comprising: mac, expiry-date
-
-=cut
-
-sub requestmac {
-    my ($self, %args) = @_;
-    for (qw/service-id reason/) {
-        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
-        }
-
-    my $response = $self->make_request("requestmac", \%args);
-
-    return (
-        mac => $response->{a}->{"mac"}->{content},
-        "expiry-date" => $response->{a}->{"expiry-date"}->{content}
-    );
-}
+#x
 
 =head2 service_status
 
@@ -829,57 +831,6 @@ sub service_details {
     return %details;
 }
 
-=head2 order_history
-
-    $murphx->order_history( 12345 );
-
-Alias to C<order_eventlog_history>
-
-=cut
-
-
-sub order_history { goto &order_eventlog_history; }
-
-=head2 order_eventlog_history
-    
-    $murphx->order_eventlog_history( 12345 );
-
-Gets order history
-
-Returns an array, each element of which is a hash showing the next
-update in date sorted order. The hash keys are date, name and value.
-
-=cut
-
-sub order_eventlog_history {
-    my ($self, $order) = @_;
-    return undef unless $order;
-    my $response = $self->make_request("order_eventlog_history", { "order-id" => $order });
-
-    my @history = ();
-
-    while ( my $a = shift @{$response->{block}{block}} ) {
-        foreach (keys %{$a}) {
-            my %u = ();
-            $u{date} = $a->{'a'}->{'date'}->{'content'};
-            $u{name} = $a->{'a'}->{'name'}->{'content'};
-            $u{value} = $a->{'a'}->{'value'}->{'content'};
-
-            push(@history, \%u);
-        }
-    }
-    return @history;
-}
-
-=head2 services_overusage
-
-    $murphx->services_overusage( "period" => "", "limit" => "100" );
-
-Returns an array each element of which is a hash detailing each service which has
-exceeded its usage cap. See the Murphx documentation for details.
-
-=cut
-
 sub services_overusage {
     my ($self, %args) = @_;
     die "You must provide the period parameter" unless $args{"period"};
@@ -1003,78 +954,5 @@ sub service_suspend {
     return 1;
 }
 
-
-=head2 order
-
-    $murphx->order(
-        # Customer details
-        forename => "Clara", surname => "Trucker", 
-        building => "123", street => "Pigeon Street", city => "Manchester", 
-        county => "Greater Manchester", postcode => "M1 2JX",
-        telephone => "01614960213", 
-        # Order details
-        clid => "01614960213", "client-ref" => "claradsl", 
-        "prod-id" => $product, crd => $leadtime, username => "claraandhugo",
-        password => "skyr153", "care-level" => "standard", 
-        realm => "surfdsl.net"
-    );
-
-Submits an order for DSL to be provided to the specified phone line.
-Note that all the parameters above must be supplied. CRD is the
-requested delivery date in YYYY-mm-dd format; you are responsible for
-computing dates after the minimum lead time. The product ID should have
-been supplied to you by Murphx.
-
-Additional parameters are listed below and described in the integration
-guide:
-
-    title street company mobile email fax sub-premise fixed-ip routed-ip
-    allocation-size hardware-product max-interleaving test-mode
-    inclusive-transfer
-
-If a C<mac> and C<losing-isp> is passed, then the order is understood as a
-migration rather than a provision.
-
-Returns a hash describing the order.
-
-=cut
-
-sub order {
-    my ($self, $data_in) = @_;
-    # We expect it "flat" and arrange it into the right blocks as we check it
-    my $data = {};
-    for (qw/forename surname building city county postcode telephone/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{customer}{$_} = $data_in->{$_};
-    }
-    defined $data_in->{$_} and $data->{customer}{$_} = $data_in->{$_} 
-        for qw/title street company mobile email fax sub-premise/;
-
-    for (qw/cli client-ref prod-id crd username/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{order}{$_} = $data_in->{$_};
-    }
-
-    for (qw/password realm care-level/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{order}{attributes}{$_} = $data_in->{$_};
-    }
-    defined $data_in->{$_} and $data->{order}{attributes}{$_} = $data_in->{$_} 
-        for qw/fixed-ip routed-ip allocation-size hardware-product pstn-order-id
-            max-interleaving test-mode inclusive-transfer mac losing-isp/;
-
-    my $response = undef;
-    if ( defined $data_in->{"mac"} && defined $data_in->{"losing-isp"} ) {
-        $response = $self->make_request("migrate", $data);
-    } else {
-        $response = $self->make_request("provide", $data);
-    }
-
-    my %order = ();
-    foreach ( keys %{$response->{a}} ) {
-        $order{$_} = $response->{a}->{$_}->{content};
-    }
-    return %order;
-}
 
 1;
