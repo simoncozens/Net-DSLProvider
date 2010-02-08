@@ -752,7 +752,7 @@ sub order_status {
 
 =head2 service_view
 
-    $murphx->service_details ( '12345' );
+    $murphx->service_view ( '12345' );
 
 Combines the data from service_details, service_history and service_options
 
@@ -781,22 +781,25 @@ sub service_view {
     my ($self, $id) = @_;
     die "You must provide the service-id parameter" unless $id;
     
-    my $response = $self->make_request("service_details", {"service-id" => $id});
+    my $response = $self->make_request("service_view", {
+        "service-id" => $id });
 
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
         my $b = $_;
-        if ( ref $response->{block}->{$b} eq "ARRAY" ) {
+        if ( $response->{block}->{$b}->{block} ) {
             my @history = ();
-            while ( my $r = pop @{$response->{block}->{$b}->{block}} ) {
+            while ( my $h = pop @{$response->{block}->{$b}->{block}} ) {
                 my %a = ();
-                foreach ( keys %{$r->{a}} ) {
-                    $a{$_} = $r->{a}->{$_}->{content};
+                foreach ( keys %{$h->{a}} ) {
+                    next if ( $_ =~ /(event-id|operator|operator-id)/ );
+                    $a{$_} = $h->{a}->{$_}->{content};
                 }
                 push @history, \%a;
             }
-            $service{$b} = @history;
-        } else {
+            $service{$b} = \@history;
+        }
+        else {
             foreach ( keys %{$response->{block}->{$b}->{a}} ) {
                 $service{$b}{$_} = $response->{block}->{$b}->{a}->{$_}->{content};
             }
@@ -822,7 +825,8 @@ sub service_details {
     my ($self, $id) = @_;
     die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("service_details", {"service-id" => $id});
+    my $response = $self->make_request("service_details", {
+        "service-id" => $id, "detailed" => 'Y'});
 
     my %details = ();
     foreach (keys %{$response->{block}->{a}} ) {

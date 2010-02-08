@@ -236,7 +236,6 @@ sub serviceid {
 
 sub services_available {
     my ($self, %args) = @_; $self->_check_params(\%args);
-
     my $response = $self->make_request("ADSLChecker", 
         { "PhoneNo" => $args{cli}, "MACcode" => $args{mac},
           "Version" => 4 } );
@@ -420,7 +419,6 @@ sub requestmac {
     }
 
     my $data = $self->serviceid($args);
-    
     my $response = $self->make_request("RequestMAC", $data );
 
     return ( "requested" => 1 );
