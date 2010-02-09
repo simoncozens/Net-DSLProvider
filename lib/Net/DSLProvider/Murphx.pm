@@ -436,6 +436,16 @@ sub service_auth_log {
     return @auth;
 }
 
+=head2 session_log 
+
+    $murphx->session_log( { } );
+
+Alias for service_session_log
+
+=cut
+
+sub session_log { goto &service_session_log; }
+
 =head2 service_session_log
 
     $murphx->service_session_log( "session-id" => "12345", "rows" => "5" );

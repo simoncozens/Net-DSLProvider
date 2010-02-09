@@ -591,9 +591,9 @@ submits a request for the MAC which can be obtained later.
 =cut
 
 sub requestmac {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
 
-    my $adsl = $self->adslaccount($args);
+    my $adsl = $self->adslaccount(%args);
     if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
         my $expires = $adsl->{"ADSLAccount"}->{"MACExpires"};
         $expires =~ s/\+\d+//;
@@ -601,7 +601,7 @@ sub requestmac {
                  "expiry-date" => $expires };
     }
 
-    my $data = $self->serviceid($args);
+    my $data = $self->serviceid(\%args);
     
     my $response = $self->make_request("RequestMAC", $data );
 
@@ -659,9 +659,9 @@ Returns details for the given service
 =cut
 
 sub adslaccount {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     
-    my $data = $self->serviceid($args);
+    my $data = $self->serviceid(\%args);
     
     my $response = $self->make_request("AdslAccount", $data );
 
@@ -761,16 +761,87 @@ sub usage_summary {
     my $end = $start;
     $end += ONE_MONTH;
 
-    warn $start->epoch . " - " . $end->epoch;
-
     $data->{"starttimestamp"} = $start->epoch;
     $data->{"endtimestamp"} = $end->epoch;
     $data->{"rawdisplay"} = 'Y';
 
     my $response = $self->make_request("UsageHistory", $data );
 
-    use Data::Dumper; warn Dumper $response;
     return %$response;
+}
+
+sub usagehistory { goto &usage_summary; }
+
+sub usagehistorydetail {
+    my ($self, %args) = @_;
+    for (qw/ /) {
+        die "You must provide the $_ parameter" unless $args{$_};
+    }
+
+    my $data = $self->serviceid(\%args);
+
+    my $response = $self->make_request("UsageHistoryDetail", $data);
+}
+
+=head2 session_log
+
+    $enta->session_log( "service-id" => "ADSL12345", "days" => 5 );
+
+Returns details of recent ADSL sessions - optionally specifying the number
+of days for how recent.
+
+=cut
+
+sub session_log {goto &connectionhistory; }
+
+
+=head2 connectionhistory
+
+    $enta->connectionhistory( "service-id" => "ADSL12345", "days" => 5 );
+
+Returns details of recent ADSL sessions - optionally specifying the number
+of days for how recent.
+
+=cut
+
+sub connectionhistory {
+    my ($self, %args) = @_;
+  
+    # Enta ConnectionHistory is keyed from Username only so we need to 
+    # obtain the username if we don't have it.
+
+    my $data = undef;
+    if ( ! $args{"username"} ) {
+        my $adsl = $self->adslaccount(%args);
+        $data = { "username" => $adsl->{ADSLAccount}->{Username} };
+    }
+    else {
+        $data = $self->serviceid(\%args);
+    }
+
+    $data->{days} = $args{days} if $args{days};
+
+    my $response = $self->make_request("ConnectionHistory", $data);
+    
+    my @history = ();
+
+    if ( ref $response->{Response}->{OperationResponse}->{Connection} eq 'ARRAY' ) {
+        while ( my $h = pop @{$response->{Response}->{OperationResponse}->{Connection}} ) {
+            my %a = ();
+            foreach (keys %$h) {
+                $a{$_} = $h->{$_};
+            }
+            push @history, \%a;
+        }
+    }
+    else {
+        my %a = ();
+        foreach (keys %{$response->{Response}->{OperationResponse}->{Connection}} ) {
+            $a{$_} = $response->{Response}->{OperationResponse}->{Connection}->{$_};
+        }
+        push @history, \%a;
+    }
+    return @history;
 }
 
 1;
