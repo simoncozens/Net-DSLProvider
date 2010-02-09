@@ -756,31 +756,69 @@ sub usage_summary {
 
     my $data = $self->serviceid(\%args);
 
-    my $s = $args{year}."-".$args{month}."-1 00:00:00";
+    my $s = $args{year}."-".$args{month}."-1";
     my $start = Time::Piece->strptime($s, "%F");
-    my $end = $start;
-    $end += ONE_MONTH;
+    $args{"startday"} = $start->ymd;
 
-    $data->{"starttimestamp"} = $start->epoch;
-    $data->{"endtimestamp"} = $end->epoch;
-    $data->{"rawdisplay"} = 'Y';
+    my $e = $args{year}."-".$args{month}."-".$start->month_last_day;
+    my $end = Time::Piece->strptime($e, "%F");
+    $args{"endday"} = $end->ymd;
 
-    my $response = $self->make_request("UsageHistory", $data );
+    my @history = $self->usagehistorydetail(%args);
+    my $downstream = 0;
+    my $upstream = 0;
+    my $peakdownstream = 0;
+    my $peakupstream = 0;
 
-    return %$response;
+    while ( my $h = pop @history ) {
+        $downstream += $h->{Total}->{Down};
+        $upstream += $h->{Total}->{Up};
+        $peakdownstream += $h->{Peak}->{Down};
+        $peakupstream += $h->{Peak}->{Up};
+    }
+
+    return {
+        "year" => $args{"year"},
+        "month" => $args{"month"},
+        "total-input-octets" => $downstream,
+        "total-output-octets" => $upstream,
+        "peak-input-octets" => $peakdownstream,
+        "peak-output-octets" => $peakupstream
+    };
 }
 
 sub usagehistory { goto &usage_summary; }
 
 sub usagehistorydetail {
     my ($self, %args) = @_;
-    for (qw/ /) {
-        die "You must provide the $_ parameter" unless $args{$_};
-    }
 
     my $data = $self->serviceid(\%args);
 
+    if ( $args{"day"} ) {
+        my $d = Time::Piece->strptime($args{"day"}, "%F");
+        $data->{"day"} = $d->dmy('/');
+    }
+    elsif ( $args{"startday"} && $args{"endday"} ) {
+        my $s = Time::Piece->strptime($args{"startday"}, "%F");
+        my $e = Time::Piece->strptime($args{"endday"}, "%F");
+        $data->{"startday"} = $s->dmy('/');
+        $data->{"endday"} = $e->dmy('/');
+    }
+    else {
+        die "You must provide the day parameter or the startday and endday parameters";
+    }
+
     my $response = $self->make_request("UsageHistoryDetail", $data);
+
+    my @usage = ();
+    if ( $args{"day"} ) {
+        @usage = @{$response->{ResponseType}->{Detail}->{Usage}};
+    }
+    else {
+        @usage = @{$response->{ResponseType}->{Day}};
+    }
+
+    return @usage;
 }
 
 =head2 session_log
