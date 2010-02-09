@@ -233,7 +233,7 @@ sub serviceid {
 
 =head2 services_available
 
-    $enta->services_available ( { cli => "02072221122" } );
+    $enta->services_available ( "02072221122" );
 
 returns a hash the keys of which line speeds available:
     FIXED500, FIXED1000, FIXED2000, RA8, RA24
@@ -243,10 +243,10 @@ and the values are the maximum estimated download speed.
 =cut
 
 sub services_available {
-    my ($self, $args) = @_;
-    die "You must supply the cli parameter" unless $args->{"cli"};
+    my ($self, $cli) = @_;
+    die "You must supply the cli parameter asshole!" unless ( $cli =~ /[0-9]{10,14}/ );
 
-    my $details = $self->adslchecker( {cli=>$args->{"cli"}} );
+    my $details = $self->adslchecker( "cli" => $cli );
 
     return undef unless $details->{ErrorCode} eq "0";
 
@@ -292,11 +292,11 @@ cli parameter is required. mac is optional
 =cut
 
 sub adslchecker {
-    my ($self, $args) = @_;
-    die "You must supply the cli parameter" unless $args->{"cli"};
+    my ($self, %args) = @_;
+    die "You must supply the cli parameter" unless $args{"cli"};
 
     my $response = $self->make_request("ADSLChecker", 
-        { "PhoneNo" => $args->{cli}, "MACcode" => $args->{mac},
+        { "PhoneNo" => $args{cli}, "MACcode" => $args{mac},
           "Version" => 4 } );
 
     my %results = ();
@@ -324,11 +324,11 @@ customer ADSL login at Enta.
 =cut
 
 sub username_available {
-    my ($self, $args) = @_;
-    die "You must provide the username parameter" unless $args->{"username"};
+    my ($self, $username) = @_;
+    die "You must provide the username parameter" unless $username;
 
     my $response = $self->make_request("CheckUsernameAvailable", 
-        { "username" => $args->{"username"} } );
+        { "username" => $username } );
 
     return undef if $response->{Response}->{OperationResponse}->{Available} eq "false";
     return 1;
@@ -343,15 +343,15 @@ Given a cli and MAC returns 1 if the MAC is valid.
 =cut
 
 sub verify_mac {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/cli mac/) {
-        die "You must provide the $_ parameter" unless $args->{$_};
+        die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $line = $self->adslchecker( { 
-        "cli" => $args->{cli}, 
-        "mac" => $args->{mac} 
-        } );
+    my $line = $self->adslchecker(  
+        "cli" => $args{cli}, 
+        "mac" => $args{mac} 
+        );
     
     return undef unless $line->{MAC}->{Valid};
     return 1;
@@ -366,17 +366,17 @@ Changes the interleaving setting on the given service
 =cut
 
 sub interleaving {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     die "You must provide the Interleaving parameter plus service identifier"
-        unless $args->{"interleaving"};
+        unless $args{"interleaving"};
 
     die "interleaving can only be 'Yes', 'No' or 'Auto'" unless
-        $args->{"interleaving"} =~ /(Yes|No|Auto)/;
+        $args{"interleaving"} =~ /(Yes|No|Auto)/;
 
-    my $data = $self->serviceid($args);
-    $data->{"LineFeatures"}{"Interleaving"} = $args->{"interleaving"};
+    my $data = $self->serviceid(\%args);
+    $data->{"LineFeatures"}->{"Interleaving"} = $args{"interleaving"};
 
-    return $self->modifylinefeatures( $data );
+    return $self->modifylinefeatures( %$data );
 }
 
 =head2 stabilityoption 
@@ -388,17 +388,17 @@ Sets the Stability Option feature on a service
 =cut
 
 sub stabilityoption {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"};
+        unless $args{"option"};
 
     die "option can only be 'Standard', 'Stable', or 'Super Stable'" unless
-        $args->{"option"} =~ /(Standard|Stable|Super Stable)/;
+        $args{"option"} =~ /(Standard|Stable|Super Stable)/;
 
-    my $data = $self->serviceid($args);
-    $data->{"LineFeatures"}{"StabilityOption"} = $args->{"option"};
+    my $data = $self->serviceid(\%args);
+    $data->{"LineFeatures"}->{"StabilityOption"} = $args{"option"};
 
-    return $self->modifylinefeatures( $data );
+    return $self->modifylinefeatures( %$data );
 }
 
 =head2 elevatedbestefforts
@@ -413,20 +413,20 @@ set accordingly, otherwise it is set to the default charged by Enta.
 =cut
 
 sub elevatedbestefforts {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"};
+        unless $args{"option"};
 
     die "option can only be 'Yes' or 'No'" unless
-        $args->{option} =~ /(Yes|No)/;
+        $args{option} =~ /(Yes|No)/;
 
-    my $data = $self->serviceid($args);
+    my $data = $self->serviceid(\%args);
 
-    $data->{"LineFeatures"}->{"ElevatedBestEfforts"} = $args->{"option"};
-    $data->{"LineFeatures"}->{"ElevatedBestEffortsFee"} = $args->{"fee"}
-        if $args->{"fee"};
+    $data->{"LineFeatures"}->{"ElevatedBestEfforts"} = $args{"option"};
+    $data->{"LineFeatures"}->{"ElevatedBestEffortsFee"} = $args{"fee"}
+        if $args{"fee"};
 
-    return $self->modifylinefeatures( $data );
+    return $self->modifylinefeatures( %$data );
 }
 
 =head2 enhancedcare
@@ -441,22 +441,22 @@ accordingly, otherwise it is set to the default charged by Enta.
 =cut
 
 sub enhancedcare {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     die "You must provide the option parameter plus service identifier"
-        unless $args->{"option"};
+        unless $args{"option"};
 
     die "option can only be 'On' or 'Off'" unless
-        $args->{option} =~ /(On|Off)/;
+        $args{option} =~ /(On|Off)/;
 
-    my $data = $self->serviceid($args);
-    my $ec = 4 if $args->{option} eq 'On';
-    $ec = 5 if $args->{option} eq 'Off';
+    my $data = $self->serviceid(\%args);
+    my $ec = 4 if $args{option} eq 'On';
+    $ec = 5 if $args{option} eq 'Off';
 
     $data->{"LineFeatures"}->{"MaintenanceCategory"} = $ec;
-    $data->{"LineFeatures"}->{"MaintenanceCategoryFee"} = $args->{"fee"}
-        if $args->{"fee"};
+    $data->{"LineFeatures"}->{"MaintenanceCategoryFee"} = $args{"fee"}
+        if $args{"fee"};
 
-    return $self->modifylinefeatures( $data );
+    return $self->modifylinefeatures( %$data );
 }
 
 =head2 modifylinefeatures
@@ -483,13 +483,14 @@ change(s) made - ie:
 =cut
 
 sub modifylinefeatures {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     die "You must provide the LineFeatures parameter plus service identifier"
-        unless $args->{LineFeatures} && 
-            ( $args->{"Ref"} || $args->{"Username"} || 
-            $args->{"Telephone"} );
+        unless $args{LineFeatures};
 
-    my $response = $self->make_request("ModifyLineFeatures", $args);
+    my $data = $self->serviceid(\%args);
+    $data->{"LineFeatures"} = $args{"LineFeatures"};
+
+    my $response = $self->make_request("ModifyLineFeatures", $data);
 
     my %return = ();
     foreach ( keys %{$response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}} ) {
@@ -521,9 +522,9 @@ sub order_updates_since {
 
 =head2 getbtfeed
 
-    $enta->getbtfeed( "days" => "5" );
+    $enta->getbtfeed( "5" );
 
-Returns a list of events that have occurred on all orders since the provided date/time.
+Returns a list of events that have occurred on all orders over the number of days specified.
 
 The return is an date/time sorted array of hashes each of which contains the following fields:
     order-id date name value
@@ -531,10 +532,10 @@ The return is an date/time sorted array of hashes each of which contains the fol
 =cut
 
 sub getbtfeed {
-    my ($self, $args) = @_;
-    die "You must provide the days parameter" unless $args->{"days"};
+    my ($self, $days) = @_;
+    die "You must provide the days parameter" unless $days;
 
-    my $response = $self->make_request("GetBTFeed", $args);
+    my $response = $self->make_request("GetBTFeed", { "days" => $days });
 
     my @records = ();
     while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
@@ -564,12 +565,12 @@ Places a cease order to terminate the ADSL service completely.
 =cut
 
 sub cease {
-    my ($self, $args) = @_;
-    die "You must provide the crd parameter" unless $args->{"crd"};
+    my ($self, %args) = @_;
+    die "You must provide the crd parameter" unless $args{"crd"};
     
 
-    my $data = $self->serviceid($args);
-    $data->{"CeaseDate"} = $args->{"crd"};
+    my $data = $self->serviceid(\%args);
+    $data->{"CeaseDate"} = $args{"crd"};
     
     my $response = $self->make_request("CeaseADSLOrder", $data); 
 
@@ -617,9 +618,9 @@ Gets the most recent authentication attempt log
 =cut
 
 sub auth_log {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
 
-    my $data = $self->serviceid($args);
+    my $data = $self->serviceid(\%args);
     
     my $response = $self->make_request("LastRadiusLog", $data );
 
@@ -672,7 +673,8 @@ sub adslaccount {
             foreach ( keys %{$response->{Response}->{OperationResponse}->{$b}} ) {
                 $adsl{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
             }
-        } else {
+        }
+        else {
             $adsl{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
