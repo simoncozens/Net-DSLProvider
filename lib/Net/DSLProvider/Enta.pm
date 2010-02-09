@@ -8,7 +8,7 @@ use constant BOUNDARY => "abc123xyz890";
 use constant REALM => "Entanet Partner Logon";
 use LWP;
 use HTTP::Cookies;
-use IO::File;
+#use IO::File;
 #use POSIX;
 use XML::Simple;
 use Time::Piece;
@@ -744,48 +744,33 @@ sub order {
 
     $enta->usage_summary( "service-id" => "ADSL12345", "year" => '2009', "month" => '01' );
 
+Returns a summary of usage in the given month
+
 =cut 
 
 sub usage_summary {
-    my ($self, $args) = @_;
-    for (qw/service-id year month/) {
-    die "You must provide the $_ parameter" unless $args->{$_}
+    my ($self, %args) = @_;
+    for (qw/ year month /) {
+        die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $data = $self->serviceid($args);
+    my $data = $self->serviceid(\%args);
 
-    # Need to set $data->{StartDateTime} and $data->{StartDateTime} from
-    # the given month and year
-    
-    my $response = $self->make_request("", $data );
+    my $s = $args{year}."-".$args{month}."-1 00:00:00";
+    my $start = Time::Piece->strptime($s, "%F");
+    my $end = $start;
+    $end += ONE_MONTH;
+
+    warn $start->epoch . " - " . $end->epoch;
+
+    $data->{"starttimestamp"} = $start->epoch;
+    $data->{"endtimestamp"} = $end->epoch;
+    $data->{"rawdisplay"} = 'Y';
+
+    my $response = $self->make_request("UsageHistory", $data );
+
+    use Data::Dumper; warn Dumper $response;
+    return %$response;
 }
-
-=head2 usagehistory 
-
-    $enta->usagehistory( "service-id" =>'ADSL12345' );
-
-Gets a summary of usage for the given service. Optionally a start and end
-date for the query may be specified either as a unix timestamp, in which
-case the parameters are StartTimestamp and EndTimestamp, or in 
-"dd/mm/yyyy hh:mm:ss" format, in which case the parameters are 
-StartDateTime and EndDateTime
-
-=cut
-
-sub usagehistory {
-    my ($self, $args) = @_;
-    die "You must provide the service-id parameter" 
-        unless $args->{"service-id"};
-
-    my $data = $self->serviceid($args);
-    
-    my $response = $self->make_request("", $data );
-    
-}
-
-
-
-
 
 1;
-
