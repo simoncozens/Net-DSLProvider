@@ -186,7 +186,15 @@ sub make_request {
         $req->content($body);
     }
 
+    if ( $self->debug ) {
+        use Data::Dumper; warn Dumper $req;
+        }
+
     $res = $ua->request($req);
+    
+    if ( $self->debug ) {
+        use Data::Dumper; warn $res->content;
+        }
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
     my $resp_o = XMLin($res->content, SuppressEmpty => 1);
@@ -601,6 +609,8 @@ sub requestmac {
         return { "mac" => $adsl->{"ADSLAccount"}->{"MAC"},
                  "expiry-date" => $expires };
     }
+
+    %args = ( "ref" => $adsl->{ADSLAccount}->{OurRef} );
 
     my $data = $self->serviceid(\%args);
     
