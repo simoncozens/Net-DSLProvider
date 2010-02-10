@@ -189,7 +189,7 @@ sub make_request {
     $res = $ua->request($req);
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
-    my $resp_o = XMLin($res->content);
+    my $resp_o = XMLin($res->content, SuppressEmpty => 1);
 
     if ($resp_o->{Response}->{Type} eq 'Error') { die $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
     return $resp_o;
