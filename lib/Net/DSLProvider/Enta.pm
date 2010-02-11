@@ -641,6 +641,43 @@ sub auth_log {
     return \%log;
 }
 
+=head2 max_reports
+
+    $enta->max_reports( "service-id" => "ADSL12345" );
+
+Returns the ADSL MAX reports for connections which are based upon ADSL MAX
+
+=cut
+
+sub max_reports {
+    my ($self, %args) = @_;
+    
+    my $data = $self->serviceid(\%args);
+
+    my $response = $self->make_request("GetMaxReports", $data);
+
+    my %line = ();
+    my @rate = ();
+    my @profile = ();
+
+    while ( my $r = shift @{$response->{"Response"}->{"Report"}} ) {
+        if ( $r->{"Name"} eq "Line RateChange" ) {
+            while (my $rec = shift @{$r->{Record}} ) {
+                push @rate, $rec;
+            }
+        }
+        elsif ( $r->{"Name"} eq "Service Profile" ) {
+            while (my $rec = shift @{$r->{Record}} ) {
+                push @profile, $rec;
+            }
+        }
+    }
+    $line{"ratechange"} = \@rate;
+    $line{"profile"} = \@profile;
+
+    return %line;
+}
+
 =head2 service_view
 
     $enta->service_details( "service-id" => 'ADSL12345' );
@@ -789,14 +826,14 @@ sub usage_summary {
         $peakupstream += $h->{Peak}->{Up};
     }
 
-    return {
+    return (
         "year" => $args{"year"},
         "month" => $args{"month"},
         "total-input-octets" => $downstream,
         "total-output-octets" => $upstream,
         "peak-input-octets" => $peakdownstream,
         "peak-output-octets" => $peakupstream
-    };
+    );
 }
 
 sub usagehistory { goto &usage_summary; }
