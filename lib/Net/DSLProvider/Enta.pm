@@ -254,38 +254,38 @@ sub services_available {
     my ($self, $cli) = @_;
     die "You must supply the cli parameter asshole!" unless ( $cli =~ /[0-9]{10,14}/ );
 
-    my $details = $self->adslchecker( "cli" => $cli );
+    my %details = $self->adslchecker( "cli" => $cli );
 
-    return undef unless $details->{ErrorCode} eq "0";
+    return undef unless $details{ErrorCode} eq "0";
 
-    return undef if ( $details->{FixedRate}->{RAG} eq "R" &&
-        $details->{RateAdaptive}->{RAG} eq "R" );
+    return undef if ( $details{FixedRate}->{RAG} eq "R" &&
+        $details{RateAdaptive}->{RAG} eq "R" );
 
     my %avail = ();
-    $avail{"adslcheck"} = $details;
+    $avail{"adslcheck"} = \%details;
 
-    $avail{"RA8"} = $details->{Max}->{Speed} unless $details->{Max}->{RAG} eq "R";
+    $avail{"RA8"} = $details{Max}->{Speed} unless $details{Max}->{RAG} eq "R";
 
-    if ( $details->{FixedRate}->{RAG} =~ /(R|A|G)/ && 
-        $details->{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
+    if ( $details{FixedRate}->{RAG} =~ /(R|A|G)/ && 
+        $details{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
         $avail{"FIXED500"} = "512";
     }
 
-    if ( $details->{FixedRate}->{RAG} =~ /(A|G)/ &&
-        $details->{RateAdaptive}->{RAG} eq "G" ) {
+    if ( $details{FixedRate}->{RAG} =~ /(A|G)/ &&
+        $details{RateAdaptive}->{RAG} eq "G" ) {
         $avail{"FIXED1000"} = "1024";
     }
 
-    if ( $details->{FixedRate}->{RAG} eq "G" && 
-        $details->{RateAdaptive}->{RAG} eq "G" ) {
+    if ( $details{FixedRate}->{RAG} eq "G" && 
+        $details{RateAdaptive}->{RAG} eq "G" ) {
         $avail{"FIXED2000"} = "2048";
     }
 
-    if ( $details->{WBC}->{RAG} && $details->{WBC}->{RAG} ne "R" ) {
-        $avail{"RA24"} = $details->{WBC}->{Speed};
+    if ( $details{WBC}->{RAG} && $details{WBC}->{RAG} ne "R" ) {
+        $avail{"RA24"} = $details{WBC}->{Speed};
     }
 
-    return \%avail;
+    return %avail;
 }
 
 =head2 adslchecker 
@@ -319,7 +319,7 @@ sub adslchecker {
             $results{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
-    return \%results;
+    return %results;
 }
 
 =head2 username_available
