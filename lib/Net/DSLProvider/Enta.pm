@@ -35,7 +35,7 @@ my %formats = (
     CheckUsernameAvailable => { "Username" => "username" },
     GetBTFault => { "day" => "text", "start" => "text", "end" => "text" },
     GetAdslInstall => { "Username" => "text", "Ref" => "text" },
-    GetBTFeed => { "days" => "counting" },
+    GetBTFeed => { "Days" => "counting" },
     GetNotes => => { "Username" => "text", "Ref" => "text" },
     LastRadiusLog => { "Username" => "text", "Ref" => "text" },
     ConnectionHistory => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
@@ -525,7 +525,7 @@ sub order_updates_since {
     my $d = $now - $from;
     my $days = $d->days;
     $days =~ s/\.\d+//;
-    return &getbtfeed( "days" => $days );
+    return &getbtfeed( $days );
 }
 
 =head2 getbtfeed
@@ -543,24 +543,13 @@ sub getbtfeed {
     my ($self, $days) = @_;
     die "You must provide the days parameter" unless $days;
 
-    my $response = $self->make_request("GetBTFeed", { "days" => $days });
+    my $response = $self->make_request("GetBTFeed", { "Days" => $days });
 
     my @records = ();
     while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
-        my %a = ();
-        foreach (keys %{$r}) {
-            if ( ref $r->{$_} eq 'HASH' ) {
-                my $b = $_;
-                foreach (keys %{$r->{$b}} ) {
-                     $a{$b}{$_} = $r->{$b}->{$_};
-                }
-                next;
-            }
-            $a{$_} = $r->{$_};
-        }
-        push @records, \%a;
+        push @records, $r;
     }
-    return { "updates" => @records };
+    return @records;
 }
 
 
@@ -914,11 +903,7 @@ sub connectionhistory {
 
     if ( ref $response->{Response}->{OperationResponse}->{Connection} eq 'ARRAY' ) {
         while ( my $h = pop @{$response->{Response}->{OperationResponse}->{Connection}} ) {
-            my %a = ();
-            foreach (keys %$h) {
-                $a{$_} = $h->{$_};
-            }
-            push @history, \%a;
+            push @history, $h;
         }
     }
     else {
@@ -926,7 +911,7 @@ sub connectionhistory {
         foreach (keys %{$response->{Response}->{OperationResponse}->{Connection}} ) {
             $a{$_} = $response->{Response}->{OperationResponse}->{Connection}->{$_};
         }
-        push @history, \%a;
+        push @history, $response->{Response}->{OperationResponse}->{Connection};
     }
     return @history;
 }
