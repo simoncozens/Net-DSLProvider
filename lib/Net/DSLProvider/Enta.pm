@@ -516,10 +516,10 @@ Returns all the BT order updates since the given date
 =cut
 
 sub order_updates_since { 
-    my ($self, $args) = @_;
-    die "You must provide the date parameter" unless $args->{"date"};
+    my ($self, $date) = @_;
+    die "You must provide the date parameter" unless $date;
 
-    my $from = Time::Piece->strptime($args->{"date"}, "%F");
+    my $from = Time::Piece->strptime($date, "%F");
     my $now = localtime;
 
     my $d = $now - $from;
