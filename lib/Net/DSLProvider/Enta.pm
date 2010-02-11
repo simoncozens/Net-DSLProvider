@@ -509,7 +509,7 @@ sub modifylinefeatures {
 
 =head2 order_updates_since
 
-    $enta->order_updates_since( "date" => "2009-12-01 00:01:01" );
+    $enta->order_updates_since( "2009-12-01" );
 
 Returns all the BT order updates since the given date
 
@@ -907,10 +907,6 @@ sub connectionhistory {
         }
     }
     else {
-        my %a = ();
-        foreach (keys %{$response->{Response}->{OperationResponse}->{Connection}} ) {
-            $a{$_} = $response->{Response}->{OperationResponse}->{Connection}->{$_};
-        }
         push @history, $response->{Response}->{OperationResponse}->{Connection};
     }
     return @history;
