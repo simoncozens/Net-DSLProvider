@@ -92,7 +92,17 @@ my %formats = (
             postcode => "postcode", telephone => "phone", 
             mobile => "phone", fax => "phone", email => "email"
         }
-    }
+    },
+    case_new => {
+        "service-id" => "counting", "service-type" => "text", 
+        "appsource" => "text", "cli" => "phone", "client-id" => "counting",
+        "customer-id" => "counting", "experienced" => "datetime",
+        "hardware-product" => "text", "os" => "text", "priority" => "text",
+        "problem-type" => "text", "reported" => "text", 
+        "username" => "text",
+    },
+    customer_details => { "service-id" => "counting", "detailed" => "yesno" },
+    product_details => { "product-id" => "counting", "detailed" => "yesno" },
 );
 
 
@@ -1017,6 +1027,42 @@ sub service_suspend {
     return 1;
 }
 
+=head2 product_details
+
+    $murphx->product_details( $product-id );
+
+Returns full product details for the given product id
+
+=cut
+
+sub product_details {
+    my ($self, $id) = @_;
+    die "You cannot must provide the product-id" unless $id;
+
+    my $response = $self->make_request("product_details",
+        { "product-id" => $id, "detailed" => 'Y' });
+
+    my %a = ();
+    foreach ( keys %{$response->{block}->{a}} ) {
+        $a{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %a
+}
+
+sub customer_details {
+    my ($self, $id) = @_;
+
+    die "You cannot call _get_customer_id without the service-id" unless $id;
+
+    my $response = $self->make_request("customer_details", 
+        { "service-id"=> $id, "detailed" => 'Y' });
+
+    my %a = ();
+    foreach (keys %{$response->{block}->{a}}) {
+        $a{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %a;
+}
 
 =head2 order
 
