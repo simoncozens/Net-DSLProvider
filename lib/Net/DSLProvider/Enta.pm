@@ -509,17 +509,17 @@ sub modifylinefeatures {
 
 =head2 order_updates_since
 
-    $enta->order_updates_since( "2009-12-01" );
+    $enta->order_updates_since( "date" => "2009-12-01" );
 
 Returns all the BT order updates since the given date
 
 =cut
 
 sub order_updates_since { 
-    my ($self, $date) = @_;
-    die "You must provide the date parameter" unless $date;
+    my ($self, %args) = @_;
+    die "You must provide the date parameter" unless $args{"date"};
 
-    my $from = Time::Piece->strptime($date, "%F");
+    my $from = Time::Piece->strptime($args{"date"}, "%F");
     my $now = localtime;
 
     my $d = $now - $from;
