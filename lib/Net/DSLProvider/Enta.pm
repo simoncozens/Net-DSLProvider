@@ -109,8 +109,8 @@ my %formats = (
 sub request_xml {
     my ($self, $method, $data) = @_;
 
-    my $live = "Live";
-    $live = "Test" if @{[$self->testing]};
+    my $live = "Test";
+    $live = "Live" unless $self->testing;
 
     my $stupidEnta = 1 if $enta_xml_methods{$method};
 
