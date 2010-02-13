@@ -117,6 +117,25 @@ Input octets are upload bandwidth. Output octets are download bandwidth.
 
 $sigs{usage_summary} = [qw/service-id year month/];
 
+=head2 session_log
+
+Gets the most recent session logs for the customer connection. Mandatory input is service-id.
+The Enta module takes an optional "days" parameter specifying the number of days of session logs to retrieve
+and the Murphx module takes a "rows" parameter to obtain the most recent "rows" number of logs.
+
+Returns an array of hashes with the following fields:
+
+    start-time stop-time duration download upload username termination-reason
+
+download and upload are reported in bytes transmitted during the session.
+duration is the number of seconds of the session.
+
+The Enta module always returned "Session Ended" for the termination-reason as Enta do not report this datum.
+
+=cut
+
+$sigs{session_log} = [qw/service-id/];
+
 =head2 order_history
 
 Gets order history for the given order ID. Input is C<order-id>.
