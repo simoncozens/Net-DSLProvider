@@ -903,11 +903,57 @@ sub connectionhistory {
 
     if ( ref $response->{Response}->{OperationResponse}->{Connection} eq 'ARRAY' ) {
         while ( my $h = pop @{$response->{Response}->{OperationResponse}->{Connection}} ) {
-            push @history, $h;
+            my %a = ();
+            my $start = Time::Piece->strptime($h->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
+            my $end = Time::Piece->strptime($h->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
+            $a{"start-time"} = $start->ymd." ".$start->hms;
+            $a{"stop-time"} = $end->ymd." ".$end->hms;
+            $a{"duration"} = $end->epoch - $start->epoch;
+            $a{"username"} = $h->{"Username"};
+
+            my ($download, $upload, $measure) = ();
+
+            ($upload, $measure) = split(/\s/, $h->{"Input"});
+            
+            $a{"upload"} = $upload * 1024*1024*1024 if $measure eq 'GB';
+            $a{"upload"} = $upload * 1024*1024 if $measure eq 'MB';
+            $a{"upload"} = $upload * 1024 if $measure eq 'KB';
+
+            ($download, $measure) = split(/\s/, $h->{"Output"});
+
+            $a{"download"} = $download * 1024*1024*1024 if $measure eq 'GB';
+            $a{"download"} = $download * 1024*1024 if $measure eq 'MB';
+            $a{"download"} = $download * 1024 if $measure eq 'KB';
+
+            $a{"termination-reason"} = "Session Ended";
+
+            push @history, \%a;
         }
     }
     else {
-        push @history, $response->{Response}->{OperationResponse}->{Connection};
+        my %a = ();
+        my $start = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
+        my $end = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
+        $a{"start-time"} = $start->ymd." ".$start->hms;
+        $a{"stop-time"} = $end->ymd." ".$end->hms;
+        $a{"duration"} = $end - $start;
+        $a{"username"} = $response->{Response}->{OperationResponse}->{Connection}->{"Username"};
+
+        my ($download, $upload, $measure) = ();
+
+        ($upload, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Input"};
+        $a{"upload"} = $upload / 1024/1024/1024 if $measure eq 'GB';
+        $a{"upload"} = $upload / 1024/1024 if $measure eq 'MB';
+        $a{"upload"} = $upload / 1024 if $measure eq 'KB';
+
+        ($download, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Output"};
+        $a{"download"} = $download / 1024/1024/1024 if $measure eq 'GB';
+        $a{"download"} = $download / 1024/1024 if $measure eq 'MB';
+        $a{"download"} = $download / 1024 if $measure eq 'KB';
+
+        $a{"termination-reason"} = "Session Ended";
+
+        push @history, \%a;
     }
     return @history;
 }

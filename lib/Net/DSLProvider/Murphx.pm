@@ -465,7 +465,7 @@ entries is specified in the "rows" parameter.
 
 Returns an array each element of which is a hash containing:
 
-    username start-time stop-time duration input-octets output-octets termination-reason
+    start-time stop-time download upload termination-reason
 
 =cut
 
@@ -481,9 +481,13 @@ sub service_session_log {
     if ( ref $response->{block} eq "ARRAY" ) {
         while ( my $r = shift @{$response->{block}} ) {
             my %a = ();
+
             foreach ( keys %{$r->{block}->{a}} ) {
                 $a{$_} = $r->{block}->{a}->{$_}->{content};
             }
+
+            $a{"download"} = delete $a{"output-octets"};
+            $a{"upload"} = delete $a{"input-octets"};
             push @sessions, \%a;
         }
     } else {
@@ -491,6 +495,9 @@ sub service_session_log {
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
         }
+
+        $a{"download"} = delete $a{"output-octets"};
+        $a{"upload"} = delete $a{"input-octets"};
         push @sessions, \%a;
     }
     return @sessions;
