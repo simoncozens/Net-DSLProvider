@@ -942,14 +942,14 @@ sub connectionhistory {
         my ($download, $upload, $measure) = ();
 
         ($upload, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Input"};
-        $a{"upload"} = $upload / 1024/1024/1024 if $measure eq 'GB';
-        $a{"upload"} = $upload / 1024/1024 if $measure eq 'MB';
-        $a{"upload"} = $upload / 1024 if $measure eq 'KB';
+        $a{"upload"} = $upload * 1024*1024*1024 if $measure eq 'GB';
+        $a{"upload"} = $upload * 1024*1024 if $measure eq 'MB';
+        $a{"upload"} = $upload * 1024 if $measure eq 'KB';
 
         ($download, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Output"};
-        $a{"download"} = $download / 1024/1024/1024 if $measure eq 'GB';
-        $a{"download"} = $download / 1024/1024 if $measure eq 'MB';
-        $a{"download"} = $download / 1024 if $measure eq 'KB';
+        $a{"download"} = $download * 1024*1024*1024 if $measure eq 'GB';
+        $a{"download"} = $download * 1024*1024 if $measure eq 'MB';
+        $a{"download"} = $download * 1024 if $measure eq 'KB';
 
         $a{"termination-reason"} = "Session Ended";
 
