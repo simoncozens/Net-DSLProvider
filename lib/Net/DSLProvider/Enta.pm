@@ -8,11 +8,10 @@ use constant BOUNDARY => "abc123xyz890";
 use constant REALM => "Entanet Partner Logon";
 use LWP;
 use HTTP::Cookies;
-#use IO::File;
-#use POSIX;
 use XML::Simple;
 use Time::Piece;
 use Time::Seconds;
+use Date::Holidays::EnglandWales;
 
 # These are methods for which we have to pass Enta a block of XML as a file
 # via POST rather than simply using GET with the parameters and the fields 
@@ -251,46 +250,79 @@ and the values are the maximum estimated download speed.
 =cut
 
 sub services_available {
-    my ($self, $cli) = @_;
-    die "You must supply the cli parameter asshole!" unless ( $cli =~ /[0-9]{10,14}/ );
+    my ($self, %args) = @_;
+    die "You must supply the cli parameter asshole!" unless $args{cli};
 
-    my %details = $self->adslchecker( "cli" => $cli );
+    my %details = $self->adslchecker( %args );
 
-    return undef unless $details{ErrorCode} eq "0";
+    die "It is not possible to obtain information on your phone line" 
+        unless $details{ErrorCode} eq "0";
 
-    return undef if ( $details{FixedRate}->{RAG} eq "R" &&
-        $details{RateAdaptive}->{RAG} eq "R" );
+    if ( $details{FixedRate}->{RAG} eq "R" && $details{RateAdaptive}->{RAG} eq "R" ) {
+        die "It is not possible to provide any ADSL service on your line";
+    }
 
-    my %avail = ();
-    $avail{"adslcheck"} = \%details;
+    if ( $details{MAC}->{Valid} ne "Y" ) {
+        die $details{MAC}->{"ReasonCode"};
+    }
 
-    $avail{"RA8"} = $details{Max}->{Speed} unless $details{Max}->{RAG} eq "R";
+    my $t = Time::Piece->new();
+    $t += ONE_WEEK;
+
+    while ( is_uk_holiday($t->ymd) || ($t->wday == 1 || $t->wday == 7) ) {
+        $t += ONE_DAY;
+    }
+
+    my @services = ();
 
     if ( $details{FixedRate}->{RAG} =~ /(R|A|G)/ && 
         $details{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
-        $avail{"FIXED500"} = "512";
+        push @services, {
+            "first_date" => $t->ymd,
+            "product_id" => "FIXED500",
+            "max_speed" => "512",
+        };
     }
 
     if ( $details{FixedRate}->{RAG} =~ /(A|G)/ &&
         $details{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED1000"} = "1024";
+        push @services, {
+            "first_date" => $t->ymd,
+            "product_id" => "FIXED1000",
+            "max_speed" => "1024",
+        };
     }
 
     if ( $details{FixedRate}->{RAG} eq "G" && 
         $details{RateAdaptive}->{RAG} eq "G" ) {
-        $avail{"FIXED2000"} = "2048";
+        push @services, {
+            "first_date" => $t->ymd,
+            "product_id" => "FIXED2000",
+            "max_speed" => "2048",
+        };
+    }
+
+    if ( $details{Max}->{RAG} ne "R" ) {
+        push @services, {
+            "first_date" => $t->ymd,
+            "product_id" => "RA8",
+            "max_speed" => $details{Max}->{Speed},
+        };
     }
 
     if ( $details{WBC}->{RAG} && $details{WBC}->{RAG} ne "R" ) {
-        $avail{"RA24"} = $details{WBC}->{Speed};
+        push @services, {
+            "first_date" => $t->ymd,
+            "product_id" => "RA24",
+            "max_speed" => $details{WBC}->{Speed}
+        };
     }
-
-    return %avail;
+    return @services;
 }
 
 =head2 adslchecker 
 
-    $enta->adslchecker( { cli => "02072221122", mac => "LSDA12345523/DF12D" } );
+    $enta->adslchecker( cli => "02072221122", mac => "LSDA12345523/DF12D" );
 
 Returns details from Enta's interface to the BT ADSL checker. See Enta docs
 for details of what is returned.
