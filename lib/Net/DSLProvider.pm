@@ -2,6 +2,7 @@ package Net::DSLProvider;
 use warnings;
 use strict;
 use base 'Class::Accessor';
+use Carp qw/croak/;
 our $VERSION = '0.01';
 __PACKAGE__->mk_accessors(qw/user pass debug testing/);
 
@@ -19,6 +20,55 @@ Net::DSLProvider - Standardized interface to various DSL providers
 
 This class doesn't do much - please see the individual
 Net::DSLProvider::* modules instead.
+
+=cut
+
+my %sigs;
+
+sub _check_params {
+    my ($self, $args, @additional) = @_;
+    my $method = ((caller(1))[3]);
+    $method =~ s/.*:://;
+    my @signature = @{$sigs{$method}};
+    for (@signature, @additional) {
+        my $ok = 0;
+        my @poss = split /\|/, $_; 
+        for (@poss) { $ok=1 if $args->{$_} };
+        croak "You must supply the $poss[0] parameter" if !$ok and @poss==1;
+        croak "You must supply at least one of the following parameters: @poss" 
+            if !$ok;
+    }
+}
+
+=head1 METHODS
+ 
+=head1 INFORMATIONAL METHODS
+  
+These methods tell you things.
+  
+=head2 services_available
+    
+Takes a phone number or a postcode and returns a list of services
+that the provider can deliver to the given line.
+     
+Parameters:
+      
+    cli / postcode (Required)
+    mac (Optional)
+       
+Output is an array of hash references. Each hash reference may contain
+the following keys:
+        
+    first_date
+    product_name
+    product_id (Required)
+         
+=cut
+          
+$sigs{services_available} = ["cli|postcode"];
+$sigs{adslcheck} = ["cli|postcode"];
+
+
 
 =head1 AUTHOR
 

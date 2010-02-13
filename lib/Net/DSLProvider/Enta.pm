@@ -27,7 +27,7 @@ my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
     "AdslProductChange" => "AdslProductChange" );
 
 my %formats = (
-    ADSLChecker => { "PhoneNo" => "phone", "Version" => "4",
+    ADSLChecker => { "PhoneNo" => "phone", "Version" => "4", "PostCode" => "text",
         "MACcode" => "text" },
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
     ListConnections => { "liveorceased" => "text", "fields" => "text" },
@@ -240,7 +240,10 @@ sub serviceid {
 
 =head2 services_available
 
-    $enta->services_available ( "02072221122" );
+    $enta->services_available ( cli => "02072221122" );
+
+Returns an array of hashes which details services available on the given 
+
 
 returns a hash the keys of which line speeds available:
     FIXED500, FIXED1000, FIXED2000, RA8, RA24
@@ -251,7 +254,6 @@ and the values are the maximum estimated download speed.
 
 sub services_available {
     my ($self, %args) = @_;
-    die "You must supply the cli parameter asshole!" unless $args{cli};
 
     my %details = $self->adslchecker( %args );
 
@@ -262,7 +264,7 @@ sub services_available {
         die "It is not possible to provide any ADSL service on your line";
     }
 
-    if ( $details{MAC}->{Valid} ne "Y" ) {
+    if ( $details{MAC} && ( $details{MAC}->{Valid} ne "Y" ) ) {
         die $details{MAC}->{"ReasonCode"};
     }
 
@@ -333,11 +335,15 @@ cli parameter is required. mac is optional
 
 sub adslchecker {
     my ($self, %args) = @_;
-    die "You must supply the cli parameter" unless $args{"cli"};
 
-    my $response = $self->make_request("ADSLChecker", 
-        { "PhoneNo" => $args{cli}, "MACcode" => $args{mac},
-          "Version" => 4 } );
+    my $data = {
+        "PhoneNo" => $args{cli},
+        "PostCode" => $args{postcode},
+        "MACcode" => $args{mac},
+        "Version" => 4
+        } ;
+
+    my $response = $self->make_request("ADSLChecker", $data);
 
     my %results = ();
     foreach (keys %{$response->{Response}->{OperationResponse}}) {
