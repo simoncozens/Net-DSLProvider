@@ -564,8 +564,6 @@ sub order_updates_since {
     my $days = $d->days;
     $days =~ s/\.\d+//;
 
-    warn "$d seconds : $days : $days";
-
     my @records = &getbtfeed( $self, $days );
 
     my @updates = ();
@@ -610,7 +608,6 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub getbtfeed {
     my ($self, $days) = @_;
-    warn @_;
     die "You must provide the days parameter" unless $days;
 
     my $response = $self->make_request("GetBTFeed", { "Days" => $days });
