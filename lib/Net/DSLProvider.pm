@@ -64,6 +64,7 @@ Output is an array of hash references. Each hash reference may contain
 the following keys:
 
     first_date
+    max_speed
     product_name
     product_id (Required)
 
