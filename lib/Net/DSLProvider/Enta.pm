@@ -563,7 +563,38 @@ sub order_updates_since {
     my $d = $now - $from;
     my $days = $d->days;
     $days =~ s/\.\d+//;
-    return &getbtfeed( $days );
+
+    warn "$d seconds : $days : $days";
+
+    my @records = &getbtfeed( $self, $days );
+
+    my @updates = ();
+    my %ref = ();
+    while (my $r = pop @records) {
+        my %a = ();
+        my $ref = undef;
+
+        if ( defined $ref{$r->{"Telephone"}} ) { 
+            $ref = $ref{$r->{"Telephone"}}; 
+        }
+        else {
+            $ref = $self->_get_ref_from_telephone($r->{"Telephone"});
+            $ref{$r->{"Telephone"}} = $ref;
+        }
+
+        my ($date, $bst) = split /\+/, $r->{"TimeStamp"};
+        chomp $date;
+        my $t = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S");
+
+        $a{"date"} = $t->ymd . " " . $t->hms;
+        $a{"order-id"} = $ref;
+        $a{"value"} = $r->{"OrderType"} . " " . $r->{"CustomerRef"};
+        $a{"name"} = $r->{"SubStatus"};
+        $a{"name"} .= " " . $r->{"CommitDate"} if $r->{"CommitDate"};
+
+        push @updates, \%a;
+    }
+    return @updates;
 }
 
 =head2 getbtfeed
@@ -579,6 +610,7 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub getbtfeed {
     my ($self, $days) = @_;
+    warn @_;
     die "You must provide the days parameter" unless $days;
 
     my $response = $self->make_request("GetBTFeed", { "Days" => $days });
@@ -752,7 +784,7 @@ sub adslaccount {
             $adsl{$_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
-    return \%adsl;
+    return %adsl;
 }
 
 =head2 order
@@ -926,8 +958,8 @@ sub connectionhistory {
 
     my $data = undef;
     if ( ! $args{"username"} ) {
-        my $adsl = $self->adslaccount(%args);
-        $data = { "username" => $adsl->{ADSLAccount}->{Username} };
+        my %adsl = $self->adslaccount(%args);
+        $data = { "username" => $adsl{ADSLAccount}->{Username} };
     }
     else {
         $data = $self->serviceid(\%args);
@@ -994,6 +1026,13 @@ sub connectionhistory {
         push @history, \%a;
     }
     return @history;
+}
+
+sub _get_ref_from_telephone {
+    my ($self, $cli) = @_;
+
+    my %adsl = $self->adslaccount( "telephone" => $cli );
+    return $adsl{ADSLAccount}->{OurRef};
 }
 
 1;
