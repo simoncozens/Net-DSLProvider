@@ -586,9 +586,9 @@ sub order_updates_since {
 
         $a{"date"} = $t->ymd . " " . $t->hms;
         $a{"order-id"} = $ref;
-        $a{"value"} = $r->{"OrderType"} . " " . $r->{"CustomerRef"};
-        $a{"name"} = $r->{"SubStatus"};
-        $a{"name"} .= " " . $r->{"CommitDate"} if $r->{"CommitDate"};
+        $a{"name"} = $r->{"OrderType"} . " " . $r->{"CustomerRef"};
+        $a{"value"} = $r->{"SubStatus"};
+        $a{"value"} .= " " . $r->{"CommitDate"} if $r->{"CommitDate"};
 
         push @updates, \%a;
     }
