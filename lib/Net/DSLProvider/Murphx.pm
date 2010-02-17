@@ -40,6 +40,7 @@ my %formats = (
     service_suspend => { "service-id" => "counting", "reason" => "text" },
     service_unsuspend => { "service-id" => "counting" },
     requestmac => { "service-id" => "counting", "reason" => "text" },
+    modify_options => { "service-id" => "counting" },
     cease => {
         order => {
             "service-id" => "counting", "reason" => "text",
@@ -155,39 +156,46 @@ sub make_request {
 
 =head2 services_available
 
-Takes a phone number or a postcode and returns an hash of services; for
-each service, the hash key is the service ID. The value is another hash
-containing keys:
+    $murphx->services_available( cli => "02071112222" );
 
-    first-date
-    product-name
+Returns an array, each element of which is a hash detailing the services
+which are available on the given telephone line (cli) or postcode.
+
+Parameters:
+
+    (cli|postcode) - Required
+
+Output
+
+    { product_id,
+      first_date,
+      max_speed,
+      product_name }
 
 =cut
 
 sub services_available {
-    my ($self, $number) = @_;
-    my %args = (
-        detailed => "N", ordertype => "migrate" 
-    );
-    if ($number =~ /^[\d\s]+$/) { $args{cli} = $number }
-        else { $args{postcode} = $number }
+    my ($self, %args) = @_;
+    %args = ( %args, detailed => "N", ordertype => "migrate" );
+
     my $response = $self->make_request("availability", \%args);
 
-    my %services;
+    my %crd = ();
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
-        $services{$a->{a}->{'product-id'}->{content}}->{"first-date"} = 
-            $a->{a}->{'first-date-text'}->{content};
+        my $pid = $a->{a}->{'product-id'}->{content};
+        $crd{$pid} = $a->{a}->{'first-date-text'}->{content};
     }
-    
+
+    my @rv = ();
     while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
-        my $pid = $a->{a}{'product-id'}->{content};
-        if (exists $services{$pid}) {
-            # Copy anything else we want here
-            $services{$pid}->{"product-name"} =
-                $a->{a}{'product-name'}{content};
-        }
+        push @rv,
+            { product_id   => $a->{a}->{'product-id'}->{content},
+              first_date   => $crd{$a->{a}->{'product-id'}->{content}},
+              product_name => $a->{a}->{'product-name'}->{content},
+              max_speed => $a->{a}->{'service-speed'}->{content},
+            };
     }
-    return %services;
+    return @rv;
 }
 
 =head2 modify
@@ -1069,6 +1077,38 @@ sub customer_details {
         $a{$_} = $response->{block}->{a}->{$_}->{content};
     }
     return %a;
+}
+
+=head2 regrade_options
+
+    $murphx->regrade_options( "service-id" => "12345" );
+
+Returns an array containing details of the regrade options avaiulable on the
+given service using the module. Each element of the array is a hash with
+the same specification as returned by services_available
+
+=cut
+
+sub regrade_options {
+    my ($self, %args) = @_;
+
+    my $response = $self->make_request("modify_options", \%args);
+
+    my %crd = ();
+    my @options = ();
+    while ( my $l = shift @{$response->{block}->{leadtimes}->{block}} ) {
+        $crd{$l->{a}->{"product-id"}->{content}} = $l->{a}->{"first-date-text"}->{content};
+    }
+
+    while ( my $p = shift @{$response->{block}->{products}->{block}} ) {
+        push @options, { 
+            product_id => $p->{a}->{"product-id"}->{content},
+            "product_name" => $p->{a}->{"product-name"}->{content},
+            "first_date" => $crd{$p->{a}->{"product-id"}->{content}},
+            "max_speed" => $p->{a}->{"service-speed"}->{content}
+        };
+    }
+    return @options;
 }
 
 =head2 order

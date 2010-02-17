@@ -17,19 +17,28 @@ use Date::Holidays::EnglandWales;
 # via POST rather than simply using GET with the parameters and the fields 
 # in the XML are case sensitive while they are not when using GET
 
-my %enta_xml_methods = ( "AdslProductChange" => 1, 
+my %enta_xml_methods = ( "ProductChange" => 1, 
     "ModifyLineFeatures" => 1, "UpdateADSLContact" => 1,
     "CreateADSLOrder" => 1 );
 
 my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
     "ModifyLineFeatures" => "ModifyLineFeatures",
     "UpdateADSLContact" => "UpdateADSLContact",
-    "AdslProductChange" => "AdslProductChange" );
+    "ProductChange" => "ProductChange" );
 
 my %formats = (
     ADSLChecker => { "PhoneNo" => "phone", "Version" => "4", "PostCode" => "text",
         "MACcode" => "text" },
     AdslAccount => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone" },
+    ProductChange => { 
+        "ProductChange" => {
+            "Username" => "username", "Ref" => "ref", "Telephone" => "telephone",
+            "NewProduct" => {
+                "Family" => "family", "Cap" => "cap", "Speed" => "speed",
+            },
+            "Schedule" => "schedule",
+        },
+    },
     ListConnections => { "liveorceased" => "text", "fields" => "text" },
     CheckUsernameAvailable => { "Username" => "username" },
     GetBTFault => { "day" => "text", "start" => "text", "end" => "text" },
@@ -106,18 +115,16 @@ my %formats = (
 
 
 sub request_xml {
-    my ($self, $method, $data) = @_;
+    my ($self, $method, $args) = @_;
 
     my $live = "Test";
     $live = "Live" unless $self->testing;
 
     my $stupidEnta = 1 if $enta_xml_methods{$method};
 
-    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
-    <ResponseBlock Type="$live">\n|;
+    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n<ResponseBlock Type="$live">\n|;
     if ( $stupidEnta ) {
-        $xml .= qq|<Response Type="| . $entatype{$method} . qq|">
-        <OperationResponse Type="| . $entatype{$method} . qq|">\n|;
+        $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
     } else {
         $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
     }
@@ -127,15 +134,27 @@ sub request_xml {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
-                if ($key) { $xml .= "\t<$key>\n"; }
+                if ($key) {
+                    if ( $key eq 'ProductChange' ) {
+                        my $id = "Ref" if $args->{Ref};
+                        $id = "Telephone" if $args->{Telephone};
+                        $id = "Username" if $args->{Username};
+                        $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
+                    }
+                    else {
+                        $xml .= "\t<$key>\n";
+                    }
+                }
                 $recurse->($contents, $data->{$key});
-                if ($key) { $xml .= "</$key>\n"; }
+                if ($key) {
+                    $xml .= "</$key>\n";
+                }
             } else {
-                $xml .= qq{\t\t<$key>}.encode_entities_numeric($data->{$key})."</$key>\n" if $data->{$key};
+                $xml .= qq{\t\t<$key>}.encode_entities_numeric($args->{$key})."</$key>\n" if $args->{$key};
             }
         }
     };
-    $recurse->($formats{$method}, $data); 
+    $recurse->($formats{$method}, $args); 
 
     if ( $stupidEnta ) {
         $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
@@ -155,6 +174,7 @@ sub make_request {
     $ua->agent($agent . $ua->agent);
 
     my $url = ENDPOINT . "xml/$method" . '.php';
+    $url = ENDPOINT . "xml/AdslProductChange" . '.php' if $method eq "ProductChange";
     if ( $enta_xml_methods{$method} ) {     
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
@@ -192,7 +212,7 @@ sub make_request {
     $res = $ua->request($req);
     
     if ( $self->debug ) {
-        use Data::Dumper; warn $res->content;
+        warn $res->content;
         }
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
@@ -208,17 +228,21 @@ sub convert_input {
 
     my $data = {};
 
-    foreach ( keys %{$formats{$method}} ) {
-        if ( ref $formats{$method}->{$_} eq "HASH" ) {
-            my $k = $_;
-            foreach ( keys %{$formats{$method}{$k}} ) {
-                $data->{$k}->{$_} = $args->{$formats{$method}{$k}{$_}};
+    my $recurse = undef;
+    $recurse = sub {
+        my ($format, $arg) = @_;
+        while (my ($key, $contents) = each %$format) {
+            if (ref $contents eq "HASH") {
+                $recurse->($contents, $arg->{$key});
+            }
+            else {
+                $data->{$key} = $args->{$contents} if $args->{$contents};
             }
         }
-        else {
-            $data->{$_} = $args->{$formats{$method}->{$_}};
-        }
-    }
+    };
+
+    $recurse->($formats{$method}, $args);
+
     return $data;
 }
 
@@ -282,6 +306,7 @@ sub services_available {
         push @services, {
             "first_date" => $t->ymd,
             "product_id" => "FIXED500",
+            "product_name" => "512 Kb/s Fixed Speed",
             "max_speed" => "512",
         };
     }
@@ -291,6 +316,7 @@ sub services_available {
         push @services, {
             "first_date" => $t->ymd,
             "product_id" => "FIXED1000",
+            "product_name" => "1 Mb/s Fixed Speed",
             "max_speed" => "1024",
         };
     }
@@ -300,6 +326,7 @@ sub services_available {
         push @services, {
             "first_date" => $t->ymd,
             "product_id" => "FIXED2000",
+            "product_name" => "2 Mb/s Fixed Speed",
             "max_speed" => "2048",
         };
     }
@@ -308,6 +335,7 @@ sub services_available {
         push @services, {
             "first_date" => $t->ymd,
             "product_id" => "RA8",
+            "product_name" => "ADSL MAX Up to 8Mb/s",
             "max_speed" => $details{Max}->{Speed},
         };
     }
@@ -316,10 +344,30 @@ sub services_available {
         push @services, {
             "first_date" => $t->ymd,
             "product_id" => "RA24",
+            "product_name" => "ADSL2+ Up to 24Mb/s",
             "max_speed" => $details{WBC}->{Speed}
         };
     }
     return @services;
+}
+
+=head2 regrade_options
+
+    $enta->regrade_options( "service-id" => "ADSL12345" );
+
+Returns an array detailing the available regrade options on the service.
+
+Data returned is the same as from services_available
+
+=cut
+
+sub regrade_options {
+    my ($self, %args) = @_;
+
+    my %adsl = $self->adslaccount(%args);
+    my $cli = $adsl{ADSLAccount}->{Telephone};
+
+    return $self->services_available( "cli" => $cli );
 }
 
 =head2 adslchecker 
@@ -658,15 +706,15 @@ submits a request for the MAC which can be obtained later.
 sub requestmac {
     my ($self, %args) = @_;
 
-    my $adsl = $self->adslaccount(%args);
-    if ( $adsl->{"ADSLAccount"}->{"MAC"} ) {
-        my $expires = $adsl->{"ADSLAccount"}->{"MACExpires"};
+    my %adsl = $self->adslaccount(%args);
+    if ( $adsl{"ADSLAccount"}->{"MAC"} ) {
+        my $expires = $adsl{"ADSLAccount"}->{"MACExpires"};
         $expires =~ s/\+\d+//;
-        return { "mac" => $adsl->{"ADSLAccount"}->{"MAC"},
+        return { "mac" => $adsl{"ADSLAccount"}->{"MAC"},
                  "expiry-date" => $expires };
     }
 
-    %args = ( "ref" => $adsl->{ADSLAccount}->{OurRef} );
+    %args = ( "ref" => $adsl{ADSLAccount}->{OurRef} );
 
     my $data = $self->serviceid(\%args);
     
@@ -843,6 +891,31 @@ sub order {
     return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
              "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
              "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
+}
+
+
+=head2 product_change
+
+    $enta->product_change( "username" => "myusername", "family" => "Family",
+        "cap" => "30", "speed" => "8000" );
+
+Place an order to change the specified service to the given new product.
+
+Note that you can only use username or telephone to identify the service. 
+You cannot use ref or service-id
+
+=cut
+
+sub product_change {
+    my ($self, %args) = @_;
+    die "You must pass either the Username or Telephone parameter" if ( $args{"ref"} || $args{"service-id"});
+
+    $args{schedule} = "JustBeforeNextBill";
+
+    my $data = $self->convert_input("ProductChange", \%args);
+    my $response = $self->make_request("ProductChange", $data);
+
+    return $response->{Response}->{OperationResponse}->{ProductChange}->{Results};
 }
 
 =head2 usage_summary 
