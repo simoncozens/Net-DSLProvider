@@ -1111,6 +1111,29 @@ sub regrade_options {
     return @options;
 }
 
+=head2 regrade
+
+    $murphx->regrade( "service-id" => "12345",
+                      "prod-id" => 1595,
+                      "crd" => "2010-02-01" );
+
+Places an order to regrade the specified service to the defined prod-id
+on the crd specified. Use regrade_options first to determine which
+products are available and the earliest crd available.
+
+The parameters you may pass to this function are the same as for the 
+modify function. See Murphx documentation for details.
+
+=cut
+
+sub regrade {
+    my ($self, %args) = @_;
+    $args{'client-ref'} = $args{'service-id'}."-regrade" unless $args{'client-ref'};
+    $args{'care-level'} = "standard" unless $args{'care-level'};
+
+    return $self->modify(%args);
+}
+
 =head2 order
 
     $murphx->order(
