@@ -1171,6 +1171,19 @@ sub connectionhistory {
     return @history;
 }
 
+=head2 first_crd
+
+    $enta->first_crd( "order-type" => "provide", "product-id" => "FAM30" );
+
+Returns the first date an order may be placed for.
+
+Parameters: 
+
+    order-type
+    product-id
+
+=cut
+
 sub first_crd {
     my ($self, %args) = @_;
     

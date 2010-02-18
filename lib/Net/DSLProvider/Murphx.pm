@@ -13,6 +13,7 @@ my %formats = (
     selftest => { sysinfo => { type => "text" }},
     availability => { cli => "phone", detailed => "yesno", ordertype =>
     "text", postcode => "postcode"},
+    leadtime => { "product-id" => "counting", "order-type" => "text" },
     order_status => {"order-id" => "counting" },
     order_eventlog_history => { "order-id" => "counting" },
     order_eventlog_changes => { "date" => "datetime" },
@@ -1205,6 +1206,62 @@ sub order {
         $order{$_} = $response->{a}->{$_}->{content};
     }
     return %order;
+}
+
+=head2 first_crd
+
+    $murphx->first_crd( "order-type" => "provide", "product-id" => "1595" );
+
+Returns the first possible date in ISO format an order of the specified 
+may be placed for.
+
+Required Parameters:
+
+    order-type : provide, migrate, modify or cease
+    product-id : the Murphx product ID
+
+=cut
+
+sub first_crd {
+    my ($self, %args) = @_;
+
+    my %leadtime = $self->leadtime(%args);
+
+    return $leadtime{"first-date-text"};
+}
+
+=head2 leadtime
+
+    $murphx->leadtime( "order-type" => "provide", "product-id" => "1595" );
+
+Returns a hash detailing the leadtime and first date for an order of the
+given type and for the given product. 
+
+Required Parameters:
+
+    order-type : provide, migrate, modify or cease
+    product-id : the Murphx product ID
+
+Returns:
+
+    leadtime        : number of leadtime days
+    first-date-int  : first date as seconds since unix epoch
+    first-date-text : first date in ISO format
+
+=cut
+
+sub leadtime {
+    my ($self, %args) = @_;
+
+    $response = $self->make_request("leadtime", \%args);
+
+    my %lead = ();
+
+    foreach (keys %{$response->{a}}) {
+        $lead{$_} = $response->{a}->{$_}->{content};
+    }
+
+    return %lead;
 }
 
 1;
