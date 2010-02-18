@@ -1217,7 +1217,7 @@ may be placed for.
 
 Required Parameters:
 
-    order-type : provide, migrate, modify or cease
+    order-type : provide, migrate in, modify or cease
     product-id : the Murphx product ID
 
 =cut
@@ -1239,7 +1239,7 @@ given type and for the given product.
 
 Required Parameters:
 
-    order-type : provide, migrate, modify or cease
+    order-type : provide, migrate in, modify or cease
     product-id : the Murphx product ID
 
 Returns:
@@ -1253,7 +1253,7 @@ Returns:
 sub leadtime {
     my ($self, %args) = @_;
 
-    $response = $self->make_request("leadtime", \%args);
+    my $response = $self->make_request("leadtime", \%args);
 
     my %lead = ();
 
