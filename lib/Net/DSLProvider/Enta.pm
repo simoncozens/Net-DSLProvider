@@ -19,11 +19,12 @@ use Date::Holidays::EnglandWales;
 
 my %enta_xml_methods = ( "ProductChange" => 1, 
     "ModifyLineFeatures" => 1, "UpdateADSLContact" => 1,
-    "CreateADSLOrder" => 1 );
+    "CreateADSLOrder" => 1, CeaseADSLOrder => 1 );
 
 my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
     "ModifyLineFeatures" => "ModifyLineFeatures",
     "UpdateADSLContact" => "UpdateADSLContact",
+    "CeaseADSLOrder" => "CeaseADSLOrder",
     "ProductChange" => "ProductChange" );
 
 my %formats = (
@@ -679,10 +680,12 @@ Places a cease order to terminate the ADSL service completely.
 sub cease {
     my ($self, %args) = @_;
     die "You must provide the crd parameter" unless $args{"crd"};
-    
 
-    my $data = $self->serviceid(\%args);
-    $data->{"CeaseDate"} = $args{"crd"};
+    my %adsl = $self->adslaccount(%args);
+    my $data = { "Ref" => $adsl{ADSLAccount}->{OurRef} };
+
+    my $d = Time::Piece->strptime($args{"crd"}, "%F");
+    $data->{"CeaseDate"} = $d->dmy('/');
     
     my $response = $self->make_request("CeaseADSLOrder", $data); 
 
