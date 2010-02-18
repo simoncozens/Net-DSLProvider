@@ -1171,6 +1171,19 @@ sub connectionhistory {
     return @history;
 }
 
+sub first_crd {
+    my ($self, %args) = @_;
+    
+    my $t = Time::Piece->new();
+    $t += ONE_WEEK;
+
+    while ( is_uk_holiday($t->ymd) || ($t->wday == 1 || $t->wday == 7) ) {
+        $t += ONE_DAY;
+    }
+
+    return $t->ymd;
+}
+
 sub _get_ref_from_telephone {
     my ($self, $cli) = @_;
 
