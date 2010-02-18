@@ -52,9 +52,9 @@ my %formats = (
     GetInterleaving => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     GetOpenADSLFaults => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     RequestMAC => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
-    UsageHistory => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
-        "starttimestamp" => "unixtime", "endtimestamp" => "unixtime", "rawdisplay" => "text",
-        "startdatetime" => "dd/mm/yyyy hh:mm:ss", "enddatetime" => "dd/mm/yyyy hh:mm:ss" },
+    UsageHistory => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone",
+        "StartTimeStamp" => "starttimestamp", "EndTimeStamp" => "endtimestamp", 
+        "StartDateTime" => "startdatetime", "EndDateTime" => "enddatetime" },
     UsageHistoryDetail => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
     GetMaxReports => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
@@ -175,6 +175,7 @@ sub make_request {
     $ua->agent($agent . $ua->agent);
 
     my $url = ENDPOINT . "xml/$method" . '.php';
+    $url = ENDPOINT . "xml-beta/$method" . '.php' if $method eq "UsageHistory";
     $url = ENDPOINT . "xml/AdslProductChange" . '.php' if $method eq "ProductChange";
     if ( $enta_xml_methods{$method} ) {     
         push @{$ua->requests_redirectable}, 'POST';
@@ -228,6 +229,8 @@ sub convert_input {
     die unless $method && ref $args eq 'HASH';
 
     my $data = {};
+
+    $args->{ref} = delete $args->{"service-id"} if $args->{"service-id"};
 
     my $recurse = undef;
     $recurse = sub {
@@ -1014,7 +1017,28 @@ sub usage_summary {
     );
 }
 
-sub usagehistory { goto &usage_summary; }
+sub usage_history {
+    my ($self, %args) = @_;
+
+    if ( $args{startdatetime} ) {
+        my $s = Time::Piece->strptime($args{startdatetime}, "%Y-%m-%d %H:%M:%S");
+        $args{startdatetime} = $s->dmy('/') . ' ' . $s->strftime("%H:%M:%S");
+    }
+    if ( $args{enddatetime} ) {
+        my $s = Time::Piece->strptime($args{enddatetime}, "%Y-%m-%d %H:%M:%S");
+        $args{enddatetime} = $s->dmy('/') . ' ' . $s->strftime("%H:%M:%S");
+    }
+
+    my $data = $self->convert_input("UsageHistory", \%args);
+
+    $data->{RawDisplay} = 1;
+
+    my $response = $self->make_request("UsageHistory", $data);
+
+    use Data::Dumper;
+    print Dumper $response;
+
+}
 
 sub usagehistorydetail {
     my ($self, %args) = @_;
