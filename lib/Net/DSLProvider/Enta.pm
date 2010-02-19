@@ -649,20 +649,27 @@ sub order_updates_since {
 
 =head2 getbtfeed
 
-    $enta->getbtfeed( "5" );
+    $enta->getbtfeed( "days" => 5 );
 
 Returns a list of events that have occurred on all orders over the number of days specified.
 
+Parameters:
+
+    days : The number of days up to the current date to get reports for
+
 The return is an date/time sorted array of hashes each of which contains the following fields:
-    order-id date name value
+    order-id
+    date
+    name
+    value
 
 =cut
 
 sub getbtfeed {
-    my ($self, $days) = @_;
-    die "You must provide the days parameter" unless $days;
+    my ($self, %args) = @_;
+    die "You must provide the days parameter" unless $args{days};
 
-    my $response = $self->make_request("GetBTFeed", { "Days" => $days });
+    my $response = $self->make_request("GetBTFeed", { "Days" => $args{days} });
 
     my @records = ();
     while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
