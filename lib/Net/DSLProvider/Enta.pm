@@ -752,10 +752,17 @@ sub auth_log {
     my $response = $self->make_request("LastRadiusLog", $data );
 
     my %log = ();
-    foreach ( keys %{$response->{Response}->{OperationResponse}} ) {
-        $log{$_} = $response->{Response}->{OperationResponse}->{$_};
-    }
-    return \%log;
+    my @r = ();
+
+    my $t = Time::Piece->strptime($response->{Response}->{OperationResponse}->{DateTime}, "%d %b %Y %H:%M:%S");
+
+    $log{"auth-date"} = $t->ymd . ' ' . $t->hms;
+    $log{"username"} = $response->{Response}->{OperationResponse}->{Username};
+    $log{"result"} = "Login OK";
+    $log{"ipaddress"} = $response->{Response}->{OperationResponse}->{IPAddress};
+
+    push @r, \%log;
+    return @r;
 }
 
 =head2 max_reports
