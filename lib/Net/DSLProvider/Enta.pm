@@ -616,7 +616,10 @@ sub order_updates_since {
     my $days = $d->days;
     $days =~ s/\.\d+//;
 
-    my @records = &getbtfeed( $self, $days );
+    my $date_format = "%Y-%m-%d %H:%M:%S";
+    $date_format = $args{dateformat} if $args{dateformat};
+
+    my @records = $self->getbtfeed( "days" => $days );
 
     my @updates = ();
     my %ref = ();
@@ -636,7 +639,7 @@ sub order_updates_since {
         chomp $date;
         my $t = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S");
 
-        $a{"date"} = $t->ymd . " " . $t->hms;
+        $a{"date"} = $t->strftime($date_format);
         $a{"order-id"} = $ref;
         $a{"name"} = $r->{"OrderType"} . " " . $r->{"CustomerRef"};
         $a{"value"} = $r->{"SubStatus"};

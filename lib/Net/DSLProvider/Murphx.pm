@@ -394,6 +394,10 @@ sub order_eventlog_changes {
             my %a = ();
             foreach ( keys %{$b->{a}} ) {
                 $a{$_} = $b->{a}->{$_}->{content};
+                if ( $_ eq 'date' && $args{dateformat} ) {
+                    my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
+                    $a{$_} = $d->strftime($args{dateformat});
+                }
             }
             push @updates, \%a;
         }
@@ -401,6 +405,10 @@ sub order_eventlog_changes {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+            if ( $_ eq 'date' && $args{dateformat} ) {
+                my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
+                $a{$_} = $d->strftime($args{dateformat});
+            }
         }
         push @updates, \%a;
     }
