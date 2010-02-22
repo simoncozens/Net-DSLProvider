@@ -1057,7 +1057,8 @@ sub usage_history {
 =head2 usage_history_detail
 
     $enta->usage_history_detail( "service-id" => "ADSL12345", 
-        startday => '2009-12-01', endday => '2010-02-01' );
+        startday => '2009-12-01', endday => '2010-02-01',
+        dateformat => "%a, %d %m %Y");
    
     $enta->usage_history_detail( "service-id" => "ADSL12345", 
         day => '2010-02-01' );
@@ -1071,6 +1072,7 @@ Parameters:
     startday   : Start date in ISO format
     endday     : End data in ISO format
     day        : Date in ISO format
+    dateformat : Format string per strftime. Defaults to ISO. (Optional)
 
 Either the startday and endday parameters or the day parameter must be 
 passed.
@@ -1113,6 +1115,9 @@ sub usage_history_detail {
         die "You must provide the day parameter or the startday and endday parameters";
     }
 
+    my $date_format = "%Y-%m-%d";
+    $date_format = $args{dateformat} if $args{dateformat};
+
     my $response = $self->make_request("UsageHistoryDetail", $data);
 
     my @usage = ();
@@ -1130,7 +1135,7 @@ sub usage_history_detail {
         while (my $r = shift @{$response->{ResponseType}->{Day}} ) {
             my %row = ();
             my $d = Time::Piece->strptime($r->{Date}, "%F");
-            $row{'date'} = $d->strftime("%a, %d %b %Y");
+            $row{'date'} = $d->strftime($date_format);
             $row{'totalup'} = $r->{Total}->{Up};
             $row{'totaldown'} = $r->{Total}->{Down};
             $row{'peakup'} = $r->{Peak}->{Up};
