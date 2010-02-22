@@ -740,7 +740,7 @@ sub requestmac {
 
     $enta->auth_log( "service-id" => 'ADSL12345' );
 
-Gets the most recent authentication attempt log
+Gets the most recent authentication attempt log.
 
 =cut
 
@@ -753,10 +753,13 @@ sub auth_log {
 
     my %log = ();
     my @r = ();
+    
+    my $date_format = "%Y-%m-%d %H:%M:%S";
+    $date_format = $args{dateformat} if $args{dateformat};
 
     my $t = Time::Piece->strptime($response->{Response}->{OperationResponse}->{DateTime}, "%d %b %Y %H:%M:%S");
 
-    $log{"auth-date"} = $t->ymd . ' ' . $t->hms;
+    $log{"auth-date"} = $t->strftime($date_format);
     $log{"username"} = $response->{Response}->{OperationResponse}->{Username};
     $log{"result"} = "Login OK";
     $log{"ipaddress"} = $response->{Response}->{OperationResponse}->{IPAddress};

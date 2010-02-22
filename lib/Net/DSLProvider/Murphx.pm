@@ -6,6 +6,7 @@ use base 'Net::DSLProvider';
 use constant ENDPOINT => "https://xml.xps.murphx.com/";
 use LWP::UserAgent;
 use XML::Simple;
+use Time::Piece;
 my $ua = LWP::UserAgent->new;
 __PACKAGE__->mk_accessors(qw/clientid/);
 
@@ -441,6 +442,10 @@ sub service_auth_log {
             my %a = ();
             foreach ( keys %{$r->{block}->{a}} ) {
                 $a{$_} = $r->{block}->{a}->{$_}->{content};
+                if ( $_ eq 'auth-date' && $args{dateformat} ) {
+                    my $d = Time::Piece->strptime($r->{block}->{a}->{$_}->{content}, "%Y-%m-%d %H:%M:%S");
+                    $a{$_} = $d->strftime($args{dateformat});
+                }
             }
             push @auth, \%a;
         }
@@ -448,6 +453,10 @@ sub service_auth_log {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+            if ( $_ eq 'auth-date' && $args{dateformat} ) {
+                my $d = Time::Piece->strptime($response->{block}->{block}->{a}->{$_}->{content}, "%Y-%m-%d %H:%M:%S");
+                $a{$_} = $d->strftime($args{dateformat});
+            }
         }
         push @auth, \%a;
     }
