@@ -1054,7 +1054,47 @@ sub usage_history {
 
 }
 
-sub usagehistorydetail {
+=head2 usage_history_detail
+
+    $enta->usage_history_detail( "service-id" => "ADSL12345", 
+        startday => '2009-12-01', endday => '2010-02-01' );
+   
+    $enta->usage_history_detail( "service-id" => "ADSL12345", 
+        day => '2010-02-01' );
+
+Returns usage details for each day in a period or each 10 minute period
+in a day if called with day as the parameter.
+
+Parameters:
+
+    service-id : Service identifier (or ref, username or telephone)
+    startday   : Start date in ISO format
+    endday     : End data in ISO format
+    day        : Date in ISO format
+
+Either the startday and endday parameters or the day parameter must be 
+passed.
+
+Returns an array, each element of which is a hash containing usage details
+for either a day or a 10 minute interval.
+
+Data returned per a day has the following keys:
+
+    date        : Date formatted for presentation ( eg Mon, 22 Feb 2010 )
+    totaldown   : Total number of bytes downloaded
+    totalup     : Total number of bytes uploaded
+    peakdown    : Bytes downloaded during peak period
+    peakup      : Bytes uploaded during peak period
+
+Data returned per 10 minute interval for a day:
+
+    time    : Time at end of measured time interval
+    down    : bytes downloaded during interval
+    up      : bytes uploaded during interval
+    
+=cut
+
+sub usage_history_detail {
     my ($self, %args) = @_;
 
     my $data = $self->serviceid(\%args);
@@ -1077,12 +1117,28 @@ sub usagehistorydetail {
 
     my @usage = ();
     if ( $args{"day"} ) {
-        @usage = @{$response->{ResponseType}->{Detail}->{Usage}};
+        while (my $r = shift @{$response->{ResponseType}->{Detail}->{Usage}} ) {
+            my %row = ();
+            foreach ( keys %{$r} ) {
+                my $key = lc $_;
+                $row{$key} = $r->{$_};
+            }
+            push @usage, \%row;
+        }
     }
     else {
-        @usage = @{$response->{ResponseType}->{Day}};
-    }
+        while (my $r = shift @{$response->{ResponseType}->{Day}} ) {
+            my %row = ();
+            my $d = Time::Piece->strptime($r->{Date}, "%F");
+            $row{'date'} = $d->strftime("%a, %d %b %Y");
+            $row{'totalup'} = $r->{Total}->{Up};
+            $row{'totaldown'} = $r->{Total}->{Down};
+            $row{'peakup'} = $r->{Peak}->{Up};
+            $row{'peakdown'} = $r->{Peak}->{Down};
 
+            push @usage, \%row;
+        }
+    }
     return @usage;
 }
 
