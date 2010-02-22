@@ -1025,17 +1025,17 @@ sub usage_summary {
     my $end = Time::Piece->strptime($e, "%F");
     $args{"endday"} = $end->ymd;
 
-    my @history = $self->usagehistorydetail(%args);
+    my @history = $self->usage_history_detail(%args);
     my $downstream = 0;
     my $upstream = 0;
     my $peakdownstream = 0;
     my $peakupstream = 0;
 
     while ( my $h = pop @history ) {
-        $downstream += $h->{Total}->{Down};
-        $upstream += $h->{Total}->{Up};
-        $peakdownstream += $h->{Peak}->{Down};
-        $peakupstream += $h->{Peak}->{Up};
+        $downstream += $h->{totaldown};
+        $upstream += $h->{totalup};
+        $peakdownstream += $h->{peakdown};
+        $peakupstream += $h->{peakup};
     }
 
     return (
