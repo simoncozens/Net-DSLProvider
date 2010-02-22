@@ -502,7 +502,12 @@ sub service_session_log {
 
             foreach ( keys %{$r->{block}->{a}} ) {
                 $a{$_} = $r->{block}->{a}->{$_}->{content};
+                if ( $args{dateformat} && ($_ eq 'start-time' || $_ eq "stop-time") ) {
+                    my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
+                    $a{$_} = $d->strftime($args{dateformat});
+                }
             }
+
 
             $a{"download"} = delete $a{"output-octets"};
             $a{"upload"} = delete $a{"input-octets"};
@@ -512,6 +517,10 @@ sub service_session_log {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+            if ( $args{dateformat} && ($_ eq 'start-time' || $_ eq "stop-time") ) {
+                my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
+                $a{$_} = $d->strftime($args{dateformat});
+            }
         }
 
         $a{"download"} = delete $a{"output-octets"};

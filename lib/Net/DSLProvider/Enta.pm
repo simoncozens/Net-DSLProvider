@@ -1202,6 +1202,9 @@ sub connectionhistory {
 
     $data->{days} = $args{days} if $args{days};
 
+    my $date_format = "%Y-%m-%d %H:%M:%S";
+    $date_format = $args{dateformat} if $args{dateformat};
+
     my $response = $self->make_request("ConnectionHistory", $data);
     
     my @history = ();
@@ -1211,8 +1214,8 @@ sub connectionhistory {
             my %a = ();
             my $start = Time::Piece->strptime($h->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
             my $end = Time::Piece->strptime($h->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
-            $a{"start-time"} = $start->ymd." ".$start->hms;
-            $a{"stop-time"} = $end->ymd." ".$end->hms;
+            $a{"start-time"} = $start->strftime($date_format);
+            $a{"stop-time"} = $end->strftime($date_format);
             $a{"duration"} = $end->epoch - $start->epoch;
             $a{"username"} = $h->{"Username"};
 
@@ -1239,8 +1242,8 @@ sub connectionhistory {
         my %a = ();
         my $start = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
         my $end = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
-        $a{"start-time"} = $start->ymd." ".$start->hms;
-        $a{"stop-time"} = $end->ymd." ".$end->hms;
+        $a{"start-time"} = $start->strftime($date_format);
+        $a{"stop-time"} = $end->strftime($date_format);
         $a{"duration"} = $end - $start;
         $a{"username"} = $response->{Response}->{OperationResponse}->{Connection}->{"Username"};
 
