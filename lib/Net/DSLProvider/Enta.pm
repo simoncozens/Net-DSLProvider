@@ -790,11 +790,25 @@ sub max_reports {
     while ( my $r = shift @{$response->{"Response"}->{"Report"}} ) {
         if ( $r->{"Name"} eq "Line RateChange" ) {
             while (my $rec = shift @{$r->{Record}} ) {
+                if ( $args{dateformat} ) {
+                    foreach ( "SyncTimestamp", "BIPUpdateTime", "LineRateTimestamp" ) {
+                        next unless $rec->{$_};
+                        my $d = Time::Piece->strptime($rec->{$_}, "%d/%m/%Y %H:%M:%S");
+                        $rec->{$_} = $d->strftime($args{dateformat});
+                    }
+                }
                 push @rate, $rec;
             }
         }
         elsif ( $r->{"Name"} eq "Service Profile" ) {
             while (my $rec = shift @{$r->{Record}} ) {
+                if ( $args{dateformat} ) {
+                    foreach ( "SyncTimestamp", "BIPUpdateTime", "LineRateTimestamp" ) {
+                        next unless $rec->{$_};
+                        my $d = Time::Piece->strptime($rec->{$_}, "%d/%m/%Y %H:%M:%S");
+                        $rec->{$_} = $d->strftime($args{dateformat});
+                    }
+                }
                 push @profile, $rec;
             }
         }
