@@ -862,11 +862,11 @@ sub adslaccount {
         if ( ref $response->{Response}->{OperationResponse}->{$_} eq 'HASH' ) {
             my $b = $_;
             foreach ( keys %{$response->{Response}->{OperationResponse}->{$b}} ) {
-                $adsl{$b}{$_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
+                $adsl{lc $b}{lc $_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
             }
         }
         else {
-            $adsl{$_} = $response->{Response}->{OperationResponse}->{$_};
+            $adsl{lc $_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
     return %adsl;
@@ -903,28 +903,28 @@ guide:
 =cut
 
 sub order {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
     for (qw/prod-id title forename surname street city county postcode
         telephone email cli crd routed-ip username password linespeed
         topup care-level billing-period contract-term initial-payment 
         ongoing-payment payment-method totl max-interleaving 
         customer-id/) {
-        die "You must provide the $_ parameter" unless $args->{$_};
+        die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    if ( $args->{"customer-id"} eq 'New' ) {
+    if ( $args{"customer-id"} eq 'New' ) {
         for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
             ctelephone cemail/) {
-            die "You must provide the $_ parameter" unless $args->{$_};
+            die "You must provide the $_ parameter" unless $args{$_};
         }
     }
 
-    $args->{"isdn"} = 'N';
-    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args->{mac};
-    my $d = Time::Piece->strptime($args->{"crd"}, "%F");
-    $args->{"crd"} = $d->dmy("/");
+    $args{"isdn"} = 'N';
+    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args{mac};
+    my $d = Time::Piece->strptime($args{"crd"}, "%F");
+    $args{"crd"} = $d->dmy("/");
 
-    my $data = $self->convert_input("CreateADSLOrder", $args);
+    my $data = $self->convert_input("CreateADSLOrder", \%args);
 
     my $response = $self->make_request("CreateADSLOrder", $data);
 
