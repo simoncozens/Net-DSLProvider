@@ -1,6 +1,7 @@
 package Net::DSLProvider::Cerberus;
 use base 'Net::DSLProvider';
 use Net::DSLProvider::Cerberus::soap;
+__PACKAGE__->mk_accessors(qw/clientid/);
 
 sub _credentials {
     my $self = shift;
