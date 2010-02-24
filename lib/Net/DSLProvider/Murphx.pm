@@ -812,7 +812,7 @@ sub order_status {
 
 =head2 service_view
 
-    $murphx->service_view ( '12345' );
+    $murphx->service_view ( "service-id" => '12345' );
 
 Combines the data from service_details, service_history and service_options
 
@@ -838,11 +838,10 @@ See Murphx documentation for full details
 =cut
 
 sub service_view {
-    my ($self, $id) = @_;
-    die "You must provide the service-id parameter" unless $id;
+    my ($self, %args) = @_;
+    die "You must provide the service-id parameter" unless $args{"service-id"};
     
-    my $response = $self->make_request("service_view", {
-        "service-id" => $id });
+    my $response = $self->make_request("service_view", \%args);
 
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
