@@ -140,6 +140,7 @@ sub request_xml {
                         my $id = "Ref" if $args->{Ref};
                         $id = "Telephone" if $args->{Telephone};
                         $id = "Username" if $args->{Username};
+                        print "$key $id\n";
                         $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
                     }
                     else {
@@ -207,20 +208,38 @@ sub make_request {
         $req->content($body);
     }
 
-    if ( $self->debug ) {
-        use Data::Dumper; warn Dumper $req;
-        }
+    if ( $self->debug ) { use Data::Dumper; warn Dumper $req; }
 
     $res = $ua->request($req);
     
-    if ( $self->debug ) {
-        warn $res->content;
-        }
+    if ( $self->debug ) { warn $res->content; }
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
     my $resp_o = XMLin($res->content, SuppressEmpty => 1);
 
     if ($resp_o->{Response}->{Type} eq 'Error') { die $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
+
+    my $recurse = undef;
+    $recurse = sub {
+        my $input = shift;
+        while ( my ($oldkey, $contents) = each %$input ) {
+            my $newkey = $oldkey;
+            $newkey =~ s/-/_/g;
+            $input->{$newkey} = $recurse->($contents), if ref $contents eq 'HASH';
+            if ( ref $contents eq "ARRAY" ) {
+                for my $r ( @{$contents} ) {
+                    $recurse->($r);
+                }
+            }
+            $input->{$newkey} = $contents;
+            delete $input->{$oldkey} if $oldkey =~ /-/;
+        }
+    };
+
+    $recurse->($resp_o);
+
+    if ( $self->debug ) { use Data::Dumper; warn Dumper $resp_o; }
+    
     return $resp_o;
 }
 
@@ -369,7 +388,7 @@ sub regrade_options {
     my ($self, %args) = @_;
 
     my %adsl = $self->adslaccount(%args);
-    my $cli = $adsl{ADSLAccount}->{Telephone};
+    my $cli = $adsl{adslaccount}->{telephone};
 
     return $self->services_available( "cli" => $cli );
 }
@@ -592,7 +611,7 @@ sub modifylinefeatures {
 
     my %return = ();
     foreach ( keys %{$response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}} ) {
-        $return{$_} = $response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}->{$_}->{NewValue};
+        $return{lc $_} = $response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}->{$_}->{NewValue};
     }
     return \%return;
 }
@@ -621,29 +640,32 @@ sub order_updates_since {
 
     my @records = $self->getbtfeed( "days" => $days );
 
+    use Data::Dumper; print Dumper @records;
+
     my @updates = ();
     my %ref = ();
     while (my $r = pop @records) {
         my %a = ();
         my $ref = undef;
 
-        if ( defined $ref{$r->{"Telephone"}} ) { 
-            $ref = $ref{$r->{"Telephone"}}; 
+        if ( defined $ref{$r->{"telephone"}} ) { 
+            $ref = $ref{$r->{"telephone"}}; 
         }
         else {
-            $ref = $self->_get_ref_from_telephone($r->{"Telephone"});
-            $ref{$r->{"Telephone"}} = $ref;
+            eval { $ref = $self->_get_ref_from_telephone($r->{"telephone"}) };
+            $ref = $r->{"customerref"} if ( ! $ref && $r->{"customerref"} =~ /^ADSL\d+$/);
+            $ref = $r->{"telephone"} if ! $ref;
         }
 
-        my ($date, $bst) = split /\+/, $r->{"TimeStamp"};
+        my ($date, $bst) = split /\+/, $r->{"timestamp"};
         chomp $date;
         my $t = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S");
 
         $a{"date"} = $t->strftime($date_format);
-        $a{"order-id"} = $ref;
-        $a{"name"} = $r->{"OrderType"} . " " . $r->{"CustomerRef"};
-        $a{"value"} = $r->{"SubStatus"};
-        $a{"value"} .= " " . $r->{"CommitDate"} if $r->{"CommitDate"};
+        $a{"order_id"} = $ref;
+        $a{"name"} = $r->{"ordertype"} . " " . $r->{"customerref"};
+        $a{"value"} = $r->{"substatus"};
+        $a{"value"} .= " " . $r->{"commitdate"} if $r->{"commitdate"};
 
         push @updates, \%a;
     }
@@ -676,7 +698,11 @@ sub getbtfeed {
 
     my @records = ();
     while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
-        push @records, $r;
+        my %a = ();
+        foreach (keys %$r) {
+            $a{lc $_} = $r->{$_};
+        }
+        push @records, \%a;
     }
     return @records;
 }
@@ -695,7 +721,7 @@ sub cease {
     die "You must provide the crd parameter" unless $args{"crd"};
 
     my %adsl = $self->adslaccount(%args);
-    my $data = { "Ref" => $adsl{ADSLAccount}->{OurRef} };
+    my $data = { "Ref" => $adsl{adslaccount}->{ourref} };
 
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $data->{"CeaseDate"} = $d->dmy('/');
@@ -705,7 +731,7 @@ sub cease {
     die "Cease order not accepted by Enta" 
         unless $response->{Response}->{Type} eq 'Accept';
 
-    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef} };
+    return { "order_id" => $response->{Response}->{OperationResponse}->{OurRef} };
 }
 
 =head2 requestmac
@@ -723,20 +749,20 @@ sub requestmac {
     my ($self, %args) = @_;
 
     my %adsl = $self->adslaccount(%args);
-    if ( $adsl{"ADSLAccount"}->{"MAC"} ) {
-        my $expires = $adsl{"ADSLAccount"}->{"MACExpires"};
+    if ( $adsl{"adslaccount"}->{"mac"} ) {
+        my $expires = $adsl{"adslaccount"}->{"macexpires"};
         $expires =~ s/\+\d+//;
-        return { "mac" => $adsl{"ADSLAccount"}->{"MAC"},
-                 "expiry-date" => $expires };
+        return { "mac" => $adsl{"adslaccount"}->{"mac"},
+                 "expiry_date" => $expires };
     }
 
-    %args = ( "ref" => $adsl{ADSLAccount}->{OurRef} );
+    %args = ( "ref" => $adsl{adslaccount}->{ourref} );
 
     my $data = $self->serviceid(\%args);
     
     my $response = $self->make_request("RequestMAC", $data );
 
-    return { "Requested" => 1 };
+    return { "mac_requested" => 1 };
 }
 
 =head2 auth_log
@@ -762,10 +788,10 @@ sub auth_log {
 
     my $t = Time::Piece->strptime($response->{Response}->{OperationResponse}->{DateTime}, "%d %b %Y %H:%M:%S");
 
-    $log{"auth-date"} = $t->strftime($date_format);
+    $log{"auth_date"} = $t->strftime($date_format);
     $log{"username"} = $response->{Response}->{OperationResponse}->{Username};
     $log{"result"} = "Login OK";
-    $log{"ipaddress"} = $response->{Response}->{OperationResponse}->{IPAddress};
+    $log{"ip_address"} = $response->{Response}->{OperationResponse}->{IPAddress};
 
     push @r, \%log;
     return @r;
@@ -793,26 +819,34 @@ sub max_reports {
     while ( my $r = shift @{$response->{"Response"}->{"Report"}} ) {
         if ( $r->{"Name"} eq "Line RateChange" ) {
             while (my $rec = shift @{$r->{Record}} ) {
+                my %a = ();
                 if ( $args{dateformat} ) {
                     foreach ( "SyncTimestamp", "BIPUpdateTime", "LineRateTimestamp" ) {
                         next unless $rec->{$_};
                         my $d = Time::Piece->strptime($rec->{$_}, "%d/%m/%Y %H:%M:%S");
-                        $rec->{$_} = $d->strftime($args{dateformat});
+                        $a{lc $_} = $d->strftime($args{dateformat});
                     }
                 }
-                push @rate, $rec;
+                foreach ( keys %$rec ) {
+                    $a{lc $_} = $rec->{$_};
+                }
+                push @rate, \%a;
             }
         }
         elsif ( $r->{"Name"} eq "Service Profile" ) {
             while (my $rec = shift @{$r->{Record}} ) {
+                my %a = ();
                 if ( $args{dateformat} ) {
                     foreach ( "SyncTimestamp", "BIPUpdateTime", "LineRateTimestamp" ) {
                         next unless $rec->{$_};
                         my $d = Time::Piece->strptime($rec->{$_}, "%d/%m/%Y %H:%M:%S");
-                        $rec->{$_} = $d->strftime($args{dateformat});
+                        $rec->{lc $_} = $d->strftime($args{dateformat});
                     }
                 }
-                push @profile, $rec;
+                foreach (keys %$rec ) {
+                    $a{lc $_} = $rec->{$_};
+                }
+                push @profile, \%a;
             }
         }
     }
@@ -928,9 +962,9 @@ sub order {
 
     my $response = $self->make_request("CreateADSLOrder", $data);
 
-    return { "order-id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "service-id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "payment-code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
+    return { "order_id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "service_id" => $response->{Response}->{OperationResponse}->{OurRef},
+             "payment_code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} };
 }
 
 
@@ -948,7 +982,11 @@ You cannot use ref or service-id
 
 sub product_change {
     my ($self, %args) = @_;
-    die "You must pass either the Username or Telephone parameter" if ( $args{"ref"} || $args{"service-id"});
+    if ( $args{"ref"} || $args{"service-id"}) {
+        my %adsl = $self->adslaccount(%args);
+        $args{"username"} = $adsl{adslaccount}{username};
+        delete $args{"ref"} if $args{"ref"};
+    }
 
     $args{schedule} = "FirstAvailableDate";
 
@@ -976,9 +1014,9 @@ sub regrade {
     my ($self, %args) = @_;
 
     my %adsl = $self->adslaccount(%args);
-    my %data = ( "username" => $adsl{ADSLAccount}->{Username} );
+    my %data = ( "username" => $adsl{adslaccount}->{username} );
 
-    my $speed = $adsl{ADSLAccount}->{ActualBTProduct};
+    my $speed = $adsl{adslaccount}->{actualbtproduct};
 
     if ( ( $speed =~ /Premium/ && $args{"prod-id"} !~ /BUS/ ) ||
          ( $speed !~ /Premium/ && $args{"prod-id"} =~ /BUS/ ) ) {
@@ -1044,10 +1082,10 @@ sub usage_summary {
     return (
         "year" => $args{"year"},
         "month" => $args{"month"},
-        "total-input-octets" => $downstream,
-        "total-output-octets" => $upstream,
-        "peak-input-octets" => $peakdownstream,
-        "peak-output-octets" => $peakupstream
+        "total_input_octets" => $downstream,
+        "total_output_octets" => $upstream,
+        "peak_input_octets" => $peakdownstream,
+        "peak_output_octets" => $peakupstream
     );
 }
 
@@ -1069,9 +1107,26 @@ sub usage_history {
 
     my $response = $self->make_request("UsageHistory", $data);
 
-    use Data::Dumper;
-    print Dumper $response;
+    my $s = Time::Piece->strptime($response->{Response}->{OperationResponse}->{StartDateTime}, "%d %b %Y %H:%M:%S");
+    my $e = Time::Piece->strptime($response->{Response}->{OperationResponse}->{EndDateTime}, "%d %b %Y %H:%M:%S");
 
+    my %u = ();
+
+    if ( $args{dateformat} ) {
+        $u{"start_date_time"} = $s->strftime($args{dateformat});
+        $u{"end_date_time"} = $e->strftime($args{dateformat});
+    }
+    else {
+        $u{"start_date_time"} = $s->ymd.' '.$s->hms;
+        $u{"end_date_time"} = $e->ymd.' '.$e->hms;
+    }
+
+    $u{peak_download} = $response->{Response}->{OperationResponse}->{PeakDownload};
+    $u{peak_upload} = $response->{Response}->{OperationResponse}->{PeakUpload};
+    $u{download} = $response->{Response}->{OperationResponse}->{Download};
+    $u{upload} = $response->{Response}->{OperationResponse}->{Upload};
+
+    return %u;
 }
 
 =head2 usage_history_detail
@@ -1197,7 +1252,7 @@ sub connectionhistory {
     my $data = undef;
     if ( ! $args{"username"} ) {
         my %adsl = $self->adslaccount(%args);
-        $data = { "username" => $adsl{ADSLAccount}->{Username} };
+        $data = { "username" => $adsl{adslaccount}->{username} };
     }
     else {
         $data = $self->serviceid(\%args);
@@ -1217,8 +1272,8 @@ sub connectionhistory {
             my %a = ();
             my $start = Time::Piece->strptime($h->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
             my $end = Time::Piece->strptime($h->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
-            $a{"start-time"} = $start->strftime($date_format);
-            $a{"stop-time"} = $end->strftime($date_format);
+            $a{"start_time"} = $start->strftime($date_format);
+            $a{"stop_time"} = $end->strftime($date_format);
             $a{"duration"} = $end->epoch - $start->epoch;
             $a{"username"} = $h->{"Username"};
 
@@ -1236,7 +1291,7 @@ sub connectionhistory {
             $a{"download"} = $download * 1024*1024 if $measure eq 'MB';
             $a{"download"} = $download * 1024 if $measure eq 'KB';
 
-            $a{"termination-reason"} = "Session Ended";
+            $a{"termination_reason"} = "Not Available";
 
             push @history, \%a;
         }
@@ -1245,8 +1300,8 @@ sub connectionhistory {
         my %a = ();
         my $start = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
         my $end = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
-        $a{"start-time"} = $start->strftime($date_format);
-        $a{"stop-time"} = $end->strftime($date_format);
+        $a{"start_time"} = $start->strftime($date_format);
+        $a{"stop_time"} = $end->strftime($date_format);
         $a{"duration"} = $end - $start;
         $a{"username"} = $response->{Response}->{OperationResponse}->{Connection}->{"Username"};
 
@@ -1262,7 +1317,7 @@ sub connectionhistory {
         $a{"download"} = $download * 1024*1024 if $measure eq 'MB';
         $a{"download"} = $download * 1024 if $measure eq 'KB';
 
-        $a{"termination-reason"} = "Session Ended";
+        $a{"termination_reason"} = "Not Available";
 
         push @history, \%a;
     }
@@ -1299,7 +1354,7 @@ sub _get_ref_from_telephone {
     my ($self, $cli) = @_;
 
     my %adsl = $self->adslaccount( "telephone" => $cli );
-    return $adsl{ADSLAccount}->{OurRef};
+    return $adsl{adslaccount}->{ourref};
 }
 
 1;
