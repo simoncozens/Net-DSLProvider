@@ -140,7 +140,6 @@ sub request_xml {
                         my $id = "Ref" if $args->{Ref};
                         $id = "Telephone" if $args->{Telephone};
                         $id = "Username" if $args->{Username};
-                        print "$key $id\n";
                         $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
                     }
                     else {
@@ -640,8 +639,6 @@ sub order_updates_since {
 
     my @records = $self->getbtfeed( "days" => $days );
 
-    use Data::Dumper; print Dumper @records;
-
     my @updates = ();
     my %ref = ();
     while (my $r = pop @records) {
@@ -1032,7 +1029,6 @@ sub regrade {
     $data{speed} = $speed;
 
     if ( $args{"prod-id"} =~ /(\D+)(\d+)/ ) {
-        print "$1 : $2\n";
         my $family = "Family";
         $family = "Business" if $1 eq 'BUS';
         $data{family} = $family;
