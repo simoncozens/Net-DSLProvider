@@ -65,7 +65,7 @@ Wsdslgetstats => {
   }, # end Wsdslgetstats
 ); # end my %methods
 
-use SOAP::Lite;
+use SOAP::Lite ; # +trace => all;
 use Exporter;
 use Carp ();
 
@@ -81,6 +81,7 @@ sub _call {
     $self->proxy($method{endpoint} || Carp::croak "No server address (proxy) specified")
         unless $self->proxy;
     my @templates = @{$method{parameters}};
+
     my @parameters = ();
     foreach my $param (@_) {
         if (@templates) {
@@ -88,22 +89,34 @@ sub _call {
             my ($prefix,$typename) = SOAP::Utils::splitqname($template->type);
             my $method = 'as_'.$typename;
             # TODO - if can('as_'.$typename) {...}
-            my $result = $self->serializer->$method($param, $template->name, $template->type, $template->attr);
-            push(@parameters, $template->value($result->[2]));
+            #my $result = $self->serializer->$method($param, $template->name, $template->type, $template->attr);
+            #push(@parameters, $template->value($result->[2]));
+            push @parameters, $template->value($param);
+            # XXX Don't use serialiser
         }
         else {
             push(@parameters, $param);
         }
     }
-    $self->endpoint($method{endpoint})
-       ->ns($method{namespace})
-       ->on_action(sub{qq!"$method{soapaction}"!});
+
+  $self->uri('Cerberus')
+                ->proxy('http://nc.cerberusnetworks.co.uk/websvcmgr.php');
+  $self->soapversion("1.1"); # XXX
+  $self->encodingStyle('');
+  #$self->on_action(sub { sprintf '%s/%s', @_ });
+  $self->on_action(sub{qq!"$method{soapaction}"!});
   $self->serializer->register_ns("http://nc.cerberusnetworks.co.uk/NetCONNECT","db1");
+
+=for later
+
   $self->serializer->register_ns("http://schemas.xmlsoap.org/wsdl/soap/","soap");
   $self->serializer->register_ns("http://schemas.xmlsoap.org/wsdl/","wsdl");
   $self->serializer->register_ns("http://schemas.xmlsoap.org/soap/http","http");
-  $self->serializer->register_ns("http://nc.cerberusnetworks.co.uk","tns");
   $self->serializer->register_ns("http://www.w3.org/2001/XMLSchema","xsd");
+
+=cut
+
+  $self->serializer->register_ns("http://nc.cerberusnetworks.co.uk","tns");
     my $som = $self->SUPER::call($method => @parameters);
     if ($self->want_som) {
         return $som;
