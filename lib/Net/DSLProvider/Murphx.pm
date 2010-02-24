@@ -153,6 +153,25 @@ sub make_request {
     if ($self->debug) { warn "Got response: \n".$resp->content;}
     my $resp_o = XMLin($resp->content);
     if ($resp_o->{status}{no} > 0) { die  $resp_o->{status}{text} };
+
+    my $recurse = undef;
+    $recurse = sub {
+        my $input = shift;
+        while ( my ($oldkey, $contents) = each %$input ) {
+            my $newkey = $oldkey;
+            $newkey =~ s/-/_/g;
+            $input->{$newkey} = $recurse->($contents), if ref $contents eq 'HASH';
+            if ( ref $contents eq "ARRAY" ) {
+                for my $r ( @{$contents} ) {
+                    $recurse->($r);
+                }
+            }
+            $input->{$newkey} = $contents;
+            delete $input->{$oldkey} if $oldkey =~ /-/;
+        }
+    };
+    $recurse->($resp_o);
+
     return $resp_o;
 }
 
@@ -221,7 +240,7 @@ sub modify {
 
     my $response = $self->make_request("modify", \%args);
 
-    return $response->{a}->{"order-id"}->{content};
+    return $response->{a}->{"order_id"}->{content};
 }
 
 =head2 change_password 
@@ -357,7 +376,7 @@ sub woosh_request_oneshot {
 
     my $response = $self->make_request("woosh_request_oneshot", \%args);
 
-    return $response->{a}->{"woosh-id"}->{content};
+    return $response->{a}->{"woosh_id"}->{content};
 }
 
 =head2 order_updates_since
@@ -450,7 +469,7 @@ sub service_auth_log {
             my %a = ();
             foreach ( keys %{$r->{block}->{a}} ) {
                 $a{$_} = $r->{block}->{a}->{$_}->{content};
-                if ( $_ eq 'auth-date' && $args{dateformat} ) {
+                if ( $_ eq 'auth_date' && $args{dateformat} ) {
                     my $d = Time::Piece->strptime($r->{block}->{a}->{$_}->{content}, "%Y-%m-%d %H:%M:%S");
                     $a{$_} = $d->strftime($args{dateformat});
                 }
@@ -461,7 +480,7 @@ sub service_auth_log {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
-            if ( $_ eq 'auth-date' && $args{dateformat} ) {
+            if ( $_ eq 'auth_date' && $args{dateformat} ) {
                 my $d = Time::Piece->strptime($response->{block}->{block}->{a}->{$_}->{content}, "%Y-%m-%d %H:%M:%S");
                 $a{$_} = $d->strftime($args{dateformat});
             }
@@ -510,7 +529,7 @@ sub service_session_log {
 
             foreach ( keys %{$r->{block}->{a}} ) {
                 $a{$_} = $r->{block}->{a}->{$_}->{content};
-                if ( $args{dateformat} && ($_ eq 'start-time' || $_ eq "stop-time") ) {
+                if ( $args{dateformat} && ($_ eq 'start_time' || $_ eq "stop_time") ) {
                     my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
                     $a{$_} = $d->strftime($args{dateformat});
                 }
@@ -525,14 +544,14 @@ sub service_session_log {
         my %a = ();
         foreach (keys %{$response->{block}->{block}->{a}} ) {
             $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
-            if ( $args{dateformat} && ($_ eq 'start-time' || $_ eq "stop-time") ) {
+            if ( $args{dateformat} && ($_ eq 'start_time' || $_ eq "stop_time") ) {
                 my $d = Time::Piece->strptime($a{$_}, "%Y-%m-%d %H:%M:%S");
                 $a{$_} = $d->strftime($args{dateformat});
             }
         }
 
-        $a{"download"} = delete $a{"output-octets"};
-        $a{"upload"} = delete $a{"input-octets"};
+        $a{"download"} = delete $a{"output_octets"};
+        $a{"upload"} = delete $a{"input_octets"};
         push @sessions, \%a;
     }
     return @sessions;
@@ -622,7 +641,7 @@ sub cease {
     }
 
     my $response = $self->make_request("cease", \%args);
-    return $response->{a}->{"order-id"}->{content};
+    return $response->{a}->{"order_id"}->{content};
 }
 
 =head2 requestmac
@@ -646,7 +665,7 @@ sub requestmac {
 
     return (
         mac => $response->{a}->{"mac"}->{content},
-        "expiry-date" => $response->{a}->{"expiry-date"}->{content}
+        "expiry_date" => $response->{a}->{"expiry_date"}->{content}
     );
 }
 
@@ -851,7 +870,7 @@ sub service_view {
             while ( my $h = pop @{$response->{block}->{$b}->{block}} ) {
                 my %a = ();
                 foreach ( keys %{$h->{a}} ) {
-                    next if ( $_ =~ /(event-id|operator|operator-id)/ );
+                    next if ( $_ =~ /(event_id|operator|operator_id)/ );
                     $a{$_} = $h->{a}->{$_}->{content};
                 }
                 push @history, \%a;
@@ -1252,7 +1271,7 @@ sub first_crd {
 
     my %leadtime = $self->leadtime(%args);
 
-    return $leadtime{"first-date-text"};
+    return $leadtime{"first_date_text"};
 }
 
 =head2 leadtime
