@@ -11,5 +11,10 @@ sub _credentials {
     );
 }
 
+sub _call { 
+    my ($self, $method, @args) = @_;
+    Net::DSLProvider::Cerberus::soap->$method(@args, $self->_credentials);
+}
+
 
 1;
