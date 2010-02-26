@@ -160,7 +160,7 @@ sub make_request {
         while ( my ($oldkey, $contents) = each %$input ) {
             my $newkey = $oldkey;
             $newkey =~ s/-/_/g;
-            $input->{$newkey} = $recurse->($contents), if ref $contents eq 'HASH';
+            $recurse->($contents), if ref $contents eq 'HASH';
             if ( ref $contents eq "ARRAY" ) {
                 for my $r ( @{$contents} ) {
                     $recurse->($r);

@@ -49,9 +49,9 @@ Wsupdateprofile => {
     namespace => 'http://nc.cerberusnetworks.co.uk',
     parameters => [
       SOAP::Data->new(name => 'CLI', type => 'xsd:string', attr => {}),
-      SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
       SOAP::Data->new(name => 'INPCode', type => 'xsd:string', attr => {}),
       SOAP::Data->new(name => 'SNRCode', type => 'xsd:string', attr => {}),
+      SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
     ], # end parameters
   }, # end Wsupdateprofile
 Wsdslgetstats => {
