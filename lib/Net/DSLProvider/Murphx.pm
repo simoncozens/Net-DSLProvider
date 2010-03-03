@@ -203,17 +203,18 @@ sub services_available {
 
     my %crd = ();
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
-        my $pid = $a->{a}->{'product-id'}->{content};
-        $crd{$pid} = $a->{a}->{'first-date-text'}->{content};
+        my $pid = $a->{a}->{'product_id'}->{content};
+        use Data::Dumper; print Dumper $a;
+        $crd{$pid} = $a->{a}->{'first_date_text'}->{content};
     }
 
     my @rv = ();
     while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
         push @rv,
-            { product_id   => $a->{a}->{'product-id'}->{content},
-              first_date   => $crd{$a->{a}->{'product-id'}->{content}},
-              product_name => $a->{a}->{'product-name'}->{content},
-              max_speed => $a->{a}->{'service-speed'}->{content},
+            { product_id   => $a->{a}->{'product_id'}->{content},
+              first_date   => $crd{$a->{a}->{'product_id'}->{content}},
+              product_name => $a->{a}->{'product_name'}->{content},
+              max_speed => $a->{a}->{'service_speed'}->{content},
             };
     }
     return @rv;
@@ -1147,10 +1148,10 @@ sub regrade_options {
 
     while ( my $p = shift @{$response->{block}->{products}->{block}} ) {
         push @options, { 
-            product_id => $p->{a}->{"product-id"}->{content},
-            "product_name" => $p->{a}->{"product-name"}->{content},
-            "first_date" => $crd{$p->{a}->{"product-id"}->{content}},
-            "max_speed" => $p->{a}->{"service-speed"}->{content}
+            product_id => $p->{a}->{"product_id"}->{content},
+            "product_name" => $p->{a}->{"product_name"}->{content},
+            "first_date" => $crd{$p->{a}->{"product_id"}->{content}},
+            "max_speed" => $p->{a}->{"service_speed"}->{content}
         };
     }
     return @options;
@@ -1215,31 +1216,31 @@ Returns a hash describing the order.
 =cut
 
 sub order {
-    my ($self, $data_in) = @_;
+    my ($self, %data_in) = @_;
     # We expect it "flat" and arrange it into the right blocks as we check it
     my $data = {};
     for (qw/forename surname building city county postcode telephone/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{customer}{$_} = $data_in->{$_};
+        if (!$data_in{$_}) { die "You must provide the $_ parameter"; }
+        $data->{customer}{$_} = $data_in{$_};
     }
-    defined $data_in->{$_} and $data->{customer}{$_} = $data_in->{$_} 
+    defined $data_in{$_} and $data->{customer}{$_} = $data_in{$_} 
         for qw/title street company mobile email fax sub-premise/;
 
     for (qw/cli client-ref prod-id crd username/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{order}{$_} = $data_in->{$_};
+        if (!$data_in{$_}) { die "You must provide the $_ parameter"; }
+        $data->{order}{$_} = $data_in{$_};
     }
 
     for (qw/password realm care-level/) {
-        if (!$data_in->{$_}) { die "You must provide the $_ parameter"; }
-        $data->{order}{attributes}{$_} = $data_in->{$_};
+        if (!$data_in{$_}) { die "You must provide the $_ parameter"; }
+        $data->{order}{attributes}{$_} = $data_in{$_};
     }
-    defined $data_in->{$_} and $data->{order}{attributes}{$_} = $data_in->{$_} 
+    defined $data_in{$_} and $data->{order}{attributes}{$_} = $data_in{$_} 
         for qw/fixed-ip routed-ip allocation-size hardware-product pstn-order-id
             max-interleaving test-mode inclusive-transfer mac losing-isp/;
 
     my $response = undef;
-    if ( defined $data_in->{"mac"} && defined $data_in->{"losing-isp"} ) {
+    if ( defined $data_in{"mac"} && defined $data_in{"losing-isp"} ) {
         $response = $self->make_request("migrate", $data);
     } else {
         $response = $self->make_request("provide", $data);
