@@ -863,6 +863,8 @@ sub service_view {
     
     my $response = $self->make_request("service_view", \%args);
 
+    my %actions = $self->service_actions(%args);
+
     my %service = ();
     foreach ( keys %{$response->{block}} ) {
         my $b = $_;
@@ -884,6 +886,7 @@ sub service_view {
             }
         }
     }
+    $service{"service_actions"} = \%actions;
     return %service;
 }
 
