@@ -42,6 +42,9 @@ my %formats = (
     speed_limit_status => { "service-id" => "counting" },
     service_suspend => { "service-id" => "counting", "reason" => "text" },
     service_unsuspend => { "service-id" => "counting" },
+    walledgarden_status => { "service-id" => "counting" },
+    walledgarden_enable => { "service-id" => "counting", "redirect-to" => "ip-address" },
+    walledgarden_disable => { "service-id" => "counting" },
     requestmac => { "service-id" => "counting", "reason" => "text" },
     modify_options => { "service-id" => "counting" },
     cease => {
@@ -1088,6 +1091,59 @@ sub service_suspend {
     }
 
     my $response = $self->make_request("service_suspend", \%args);
+    return 1;
+}
+
+=head walledgarden_status
+
+    $murphx->walledgarden_status( "service-id" => 12345 );
+
+Returns true is the current service is subject to walled garden 
+restrictions or undef if not.
+
+=cut
+
+sub walledgarden_status {
+    my ($self, %args) = @_;
+    die "You must provide the service-id parameter" unless $args{"service-id"};
+
+    my $response = $self->make_request("walledgarden_status", \%args);
+
+    return 1 if $response->{a}->{walledgarden}->{content} eq 'enabled';
+    return undef;
+}
+
+=head2 walledgarden_enable
+
+    $murphx->walledgarden_enable( "service-id" => 12345, "ip-address" -> '192.168.1.1' );
+
+Redirects all (http and https) traffic to the specified IP address
+
+=cut
+
+sub walledgarden_enable {
+    my ($self, %args) = @_;
+    for ( qw/service-id ip-address/) {
+        die "You must provide the $_ parameter" unless $args{$_};
+    }
+
+    my $response = $self->make_request("walledgarden_enable", \%args);
+    return 1;
+}
+
+=head2 walledgarden_disable
+
+    $murphx->walledgarden_disable( "service-id" => 12345 );
+
+Disables the "walled garden" restriction on the service
+
+=cut
+
+sub walledgarden_disable {
+    my ($self, %args) = @_;
+    die "You must provide the service-id parameter" unless $args{"service-id"};
+
+    my $response = $self->make_request("walledgarden_disable", \%args);
     return 1;
 }
 
