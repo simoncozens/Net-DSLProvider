@@ -69,7 +69,7 @@ the following keys:
 $sigs{services_available} = ["cli|postcode"];
 $sigs{adslcheck} = ["cli|postcode"];
 
-
+$sigs{change_carelevel} = [qw/service-id care-level/];
 
 =head1 AUTHOR
 

@@ -45,6 +45,7 @@ my %formats = (
     walledgarden_status => { "service-id" => "counting" },
     walledgarden_enable => { "service-id" => "counting", "redirect-to" => "ip-address" },
     walledgarden_disable => { "service-id" => "counting" },
+    change_carelevel => { "service-id" => "counting", "care-level" => "text" },
     requestmac => { "service-id" => "counting", "reason" => "text" },
     modify_options => { "service-id" => "counting" },
     cease => {
@@ -1145,6 +1146,46 @@ sub walledgarden_disable {
 
     my $response = $self->make_request("walledgarden_disable", \%args);
     return 1;
+}
+
+=head change_carelevel
+
+    $murphx->change_carelevel( "service-id" -> 12345, "care-level" => "enhanced" );
+
+Changes the care-level associated with a given service. 
+
+care-level can be set to either standard or enhanced.
+
+Returns true is successful.
+
+=cut
+
+sub change_carelevel {
+    my ($self, %args) = @_;
+    $self->_check_params( \%args );
+
+    my $response = $self->make_request("change_carelevel", \%args);
+    return 1;
+}
+
+=head change_carelevel
+
+    $murphx->carei_level( "service-id" -> 12345, "care-level" => "enhanced" );
+
+Changes the care-level associated with a given service. 
+
+care-level can be set to either standard or enhanced.
+
+Returns true is successful.
+
+=cut
+
+
+sub care_level {
+    my ($self, %args) = @_;
+    $self->_check_params( \%args );
+
+    $self->change_carelevel( %args );
 }
 
 =head2 service_actions
