@@ -42,6 +42,7 @@ sub make_request {
     push @args, $self->clientid;
 
     my $resp = Net::DSLProvider::Cerberus::soap->$method(@args, $self->_credentials);
+    return $resp;
 }
 
 sub services_available {
@@ -88,12 +89,15 @@ sub services_available {
 
 sub service_view {
     my ($self, %args) = @_;
-    die "Provide the service-id parameter" unless $args{"service-id"};
+    foreach ( @{$fields{Wsfinddslline}} ) {
+        die "Provide the $_ parameter" unless $args{$_};
+    }
 
-    use Data::Dumper;
-    my $resp = $self->_call("Wsfinddslline", $args{"service-id"} , $self->clientid);
+    # my %input = $self->convert_input(%args);
 
-    return %$resp;
+    my $resp = $self->make_request("Wsfinddslline", %args);
+
+    return %{$resp->{Xml_DSLLines}};
 }
 
 1;

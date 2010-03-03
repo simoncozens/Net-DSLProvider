@@ -24,6 +24,7 @@ my %formats = (
     woosh_list => { "service-id" => "counting" },
     woosh_response => { "woosh-id" => "counting" },
     change_password => { "service-id" => "counting", "password" => "password" },
+    service_actions => { "service-id" => "counting" },
     service_details => { "service-id" => "counting", "detailed" => "yesno" },
     service_status => { "service-id" => "counting", "order-id" => "counting" },
     service_view => { "service-id" => "counting" },
@@ -1045,10 +1046,10 @@ Turn off speed limits for the given service.
 =cut
 
 sub speed_limit_disable {
-    my ($self, $id) = @_;
-    die "You must provide the service-id parameter" unless $id;
+    my ($self, %args) = @_;
+    die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("speed_limit_disable", {"service-id"=> $id});
+    my $response = $self->make_request("speed_limit_disable", \%args);
     return 1;
 }
 
@@ -1061,10 +1062,10 @@ Unsuspend this broadband service.
 =cut
 
 sub service_unsuspend {
-    my ($self, $id) = @_;
-    die "You must provide the service-id parameter" unless $id;
+    my ($self, %args) = @_;
+    die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("service_unsuspend", {"service-id"=> $id});
+    my $response = $self->make_request("service_unsuspend", \%args);
     return 1;
 }
 
@@ -1085,6 +1086,30 @@ sub service_suspend {
 
     my $response = $self->make_request("service_suspend", \%args);
     return 1;
+}
+
+=head2 service_actions
+
+    $murphx->service_actions( "service-id" -> 12345 );
+
+Returns a hash detailing which actions can be taken on the given service.
+
+Each action has a corresponding function in this module.
+
+=cut
+
+sub service_actions {
+    my ($self, %args) = @_;
+
+    die "You must provide the service-id parameter" unless $args{"service-id"};
+
+    my $response = $self->make_request("service_actions", \%args);
+
+    my %ret = ();
+    foreach ( keys %{$response->{block}->{a}} ) {
+        $ret{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %ret;
 }
 
 =head2 product_details
