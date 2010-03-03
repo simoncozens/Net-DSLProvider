@@ -70,12 +70,12 @@ $sigs{services_available} = ["cli|postcode"];
 
 $sigs{verify_mac} = [qw/cli mac/];
 
-$sigs{service_view} = [qw/service-id/];
-$sigs{service_details} = [qw/service-id/];
+$sigs{service_view} = [qw/"ref|telephone|username|service-id"/];
+$sigs{service_details} = [qw/"ref|telephone|username|service-id"/];
 
 $sigs{usage_summary} = [qw/year month/];
 
-$sigs{auth_log} = [qw/service-id/];
+$sigs{auth_log} = [qw/"ref|telephone|username|service-id"/];
 
 
 =head1 EXECUTIVE METHODS
@@ -87,13 +87,13 @@ These methods do things
 $sigs{order} = [qw/prod-id forename surname street city postcode 
                    cli client-ref prod-id crd/]; 
 
-$sigs{regrade} = [qw/service-id prod-id/];
+$sigs{regrade} = [qw/"ref|telephone|username|service-id" prod-id/];
 
-$sigs{care_level} = [qw/service-id care-level/];
+$sigs{care_level} = [qw/"ref|telephone|username|service-id" care-level/];
 
-$sigs{requestmac} = [qw/service-id/];
+$sigs{requestmac} = [qw/"ref|telephone|username|service-id"/];
 
-$sigs{cease} = [qw/service-id crd/];
+$sigs{cease} = [qw/"ref|telephone|username|service-id" crd/];
 
 =head1 AUTHOR
 
