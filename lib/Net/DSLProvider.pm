@@ -29,7 +29,7 @@ sub _check_params {
     my ($self, $args, @additional) = @_;
     my $method = ((caller(1))[3]);
     $method =~ s/.*:://;
-    my @signature = @{$sigs{$method}};
+    my @signature = @{$sigs{$method}} if $sigs{$method};
     for (@signature, @additional) {
         my $ok = 0;
         my @poss = split /\|/, $_; 
@@ -67,9 +67,33 @@ the following keys:
 =cut
           
 $sigs{services_available} = ["cli|postcode"];
-$sigs{adslcheck} = ["cli|postcode"];
 
-$sigs{change_carelevel} = [qw/service-id care-level/];
+$sigs{verify_mac} = [qw/cli mac/];
+
+$sigs{service_view} = [qw/service-id/];
+$sigs{service_details} = [qw/service-id/];
+
+$sigs{usage_summary} = [qw/year month/];
+
+$sigs{auth_log} = [qw/service-id/];
+
+
+=head1 EXECUTIVE METHODS
+
+These methods do things
+
+=cut
+
+$sigs{order} = [qw/prod-id forename surname street city postcode 
+                   cli client-ref prod-id crd/]; 
+
+$sigs{regrade} = [qw/service-id prod-id/];
+
+$sigs{care_level} = [qw/service-id care-level/];
+
+$sigs{requestmac} = [qw/service-id/];
+
+$sigs{cease} = [qw/service-id crd/];
 
 =head1 AUTHOR
 

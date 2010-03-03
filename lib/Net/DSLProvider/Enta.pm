@@ -405,6 +405,7 @@ cli parameter is required. mac is optional
 
 sub adslchecker {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, ("cli|postcode"));
 
     my $data = {
         "PhoneNo" => $args{cli},
@@ -460,6 +461,8 @@ Given a cli and MAC returns 1 if the MAC is valid.
 
 sub verify_mac {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, (qw/cli mac/));
+
     for (qw/cli mac/) {
         die "You must provide the $_ parameter" unless $args{$_};
     }
@@ -483,8 +486,7 @@ Changes the interleaving setting on the given service
 
 sub interleaving {
     my ($self, %args) = @_;
-    die "You must provide the Interleaving parameter plus service identifier"
-        unless $args{"interleaving"};
+    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" interleaving/));
 
     die "interleaving can only be 'Yes', 'No' or 'Auto'" unless
         $args{"interleaving"} =~ /(Yes|No|Auto)/;
@@ -505,8 +507,7 @@ Sets the Stability Option feature on a service
 
 sub stabilityoption {
     my ($self, %args) = @_;
-    die "You must provide the option parameter plus service identifier"
-        unless $args{"option"};
+    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
 
     die "option can only be 'Standard', 'Stable', or 'Super Stable'" unless
         $args{"option"} =~ /(Standard|Stable|Super Stable)/;
@@ -530,8 +531,7 @@ set accordingly, otherwise it is set to the default charged by Enta.
 
 sub elevatedbestefforts {
     my ($self, %args) = @_;
-    die "You must provide the option parameter plus service identifier"
-        unless $args{"option"};
+    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
 
     die "option can only be 'Yes' or 'No'" unless
         $args{option} =~ /(Yes|No)/;
@@ -559,7 +559,7 @@ Returns true is successful.
 
 sub care_level {
     my ($self, %args) = @_;
-    %self->_check_params( %args );
+    $self->_check_params( \%args );
 
     my %data = %args;
 
@@ -582,11 +582,9 @@ accordingly, otherwise it is set to the default charged by Enta.
 
 sub enhanced_care {
     my ($self, %args) = @_;
-    die "You must provide the option parameter plus service identifier"
-        unless $args{"option"};
+    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
 
-    die "option can only be 'On' or 'Off'" unless
-        $args{option} =~ /(On|Off)/;
+    die "option can only be 'On' or 'Off'" unless $args{option} =~ /(On|Off)/;
 
     my $data = $self->serviceid(\%args);
     my $ec = 4 if $args{option} eq 'On';
@@ -624,8 +622,7 @@ change(s) made - ie:
 
 sub modifylinefeatures {
     my ($self, %args) = @_;
-    die "You must provide the LineFeatures parameter plus service identifier"
-        unless $args{LineFeatures};
+    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" LineFeatures/));
 
     my $data = $self->serviceid(\%args);
     $data->{"LineFeatures"} = $args{"LineFeatures"};
@@ -649,7 +646,7 @@ Returns all the BT order updates since the given date
 
 sub order_updates_since { 
     my ($self, %args) = @_;
-    die "You must provide the date parameter" unless $args{"date"};
+    $self->_check_params(\%args, (qw/date/));
 
     my $from = Time::Piece->strptime($args{"date"}, "%F");
     my $now = localtime;
@@ -713,7 +710,7 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub getbtfeed {
     my ($self, %args) = @_;
-    die "You must provide the days parameter" unless $args{days};
+    $self->_check_params(\%args, (qw/days/));
 
     my $response = $self->make_request("GetBTFeed", { "Days" => $args{days} });
 
@@ -739,7 +736,7 @@ Places a cease order to terminate the ADSL service completely.
 
 sub cease {
     my ($self, %args) = @_;
-    die "You must provide the crd parameter" unless $args{"crd"};
+    $self->_check_params(\%args);
 
     my %adsl = $self->adslaccount(%args);
     my $data = { "Ref" => $adsl{adslaccount}->{ourref} };
@@ -768,6 +765,7 @@ submits a request for the MAC which can be obtained later.
 
 sub requestmac {
     my ($self, %args) = @_;
+    $self->_check_params(\%args);
 
     my %adsl = $self->adslaccount(%args);
     if ( $adsl{"adslaccount"}->{"mac"} ) {
@@ -796,6 +794,7 @@ Gets the most recent authentication attempt log.
 
 sub auth_log {
     my ($self, %args) = @_;
+    $self->_check_params(\%args);
 
     my $data = $self->serviceid(\%args);
     
@@ -828,6 +827,7 @@ Returns the ADSL MAX reports for connections which are based upon ADSL MAX
 
 sub max_reports {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, (qw/"ref|telephone|username|service-id"/));
     
     my $data = $self->serviceid(\%args);
 
@@ -907,6 +907,7 @@ Returns details for the given service
 
 sub adslaccount {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, ( "service-id|telephone|ref|username" ));
     
     my $data = $self->serviceid(\%args);
     
@@ -959,20 +960,19 @@ guide:
 
 sub order {
     my ($self, %args) = @_;
-    for (qw/prod-id title forename surname street city county postcode
-        telephone email cli crd routed-ip username password linespeed
-        topup care-level billing-period contract-term initial-payment 
-        ongoing-payment payment-method totl max-interleaving 
-        customer-id/) {
-        die "You must provide the $_ parameter" unless $args{$_};
-    }
+    my @required = ( qw/title county telephone email crd 
+            routed-ip username password linespeed topup care-level 
+            billing-period contract-term initial-payment ongoing-payment
+            payment-method totl max-interleaving/ );
 
     if ( $args{"customer-id"} eq 'New' ) {
         for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
             ctelephone cemail/) {
-            die "You must provide the $_ parameter" unless $args{$_};
+            push @required, $_;
         }
     }
+
+    $self->_check_params(\%args, @required);
 
     $args{"isdn"} = 'N';
     $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args{mac};
@@ -1003,9 +1003,12 @@ You cannot use ref or service-id
 
 sub product_change {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, (qw/"ref|username|telephone|service-id" 
+            family cap speed/));
+
     if ( $args{"ref"} || $args{"service-id"}) {
         my %adsl = $self->adslaccount(%args);
-        $args{"username"} = $adsl{adslaccount}{username};
+        $args{"username"} = $adsl{adslaccount}->{username};
         delete $args{"ref"} if $args{"ref"};
     }
 
@@ -1033,6 +1036,7 @@ Required parameters:
 
 sub regrade {
     my ($self, %args) = @_;
+    $self->_check_params(\%args);
 
     my %adsl = $self->adslaccount(%args);
     my %data = ( "username" => $adsl{adslaccount}->{username} );
@@ -1072,9 +1076,7 @@ Returns a summary of usage in the given month
 
 sub usage_summary {
     my ($self, %args) = @_;
-    for (qw/ year month /) {
-        die "You must provide the $_ parameter" unless $args{$_};
-    }
+    $self->_check_params(\%args, (qw/"service-id|ref|username|telephone"/));
 
     my $data = $self->serviceid(\%args);
 
@@ -1111,6 +1113,7 @@ sub usage_summary {
 
 sub usage_history {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, (qw/startdatetime enddatetime/));
 
     if ( $args{startdatetime} ) {
         my $s = Time::Piece->strptime($args{startdatetime}, "%Y-%m-%d %H:%M:%S");
@@ -1265,6 +1268,7 @@ of days for how recent.
 
 sub connectionhistory {
     my ($self, %args) = @_;
+    $self->_check_params(\%args, (qw/"service-id|telephone|ref|username" days/));
   
     # Enta ConnectionHistory is keyed from Username only so we need to 
     # obtain the username if we don't have it.
@@ -1346,14 +1350,9 @@ sub connectionhistory {
 
 =head2 first_crd
 
-    $enta->first_crd( "order-type" => "provide", "product-id" => "FAM30" );
+    $enta->first_crd();
 
 Returns the first date an order may be placed for.
-
-Parameters: 
-
-    order-type
-    product-id
 
 =cut
 
