@@ -204,7 +204,6 @@ sub services_available {
     my %crd = ();
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
         my $pid = $a->{a}->{'product_id'}->{content};
-        use Data::Dumper; print Dumper $a;
         $crd{$pid} = $a->{a}->{'first_date_text'}->{content};
     }
 
