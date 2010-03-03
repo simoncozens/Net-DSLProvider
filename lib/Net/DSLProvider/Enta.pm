@@ -544,6 +544,7 @@ sub elevatedbestefforts {
 
     return $self->modifylinefeatures( %$data );
 }
+
 =head change_carelevel
 
     $enta->carei_level( "service-id" -> "ADSL12345", "care-level" => "enhanced" );
@@ -565,12 +566,12 @@ sub care_level {
     $data{option} = 'On' if $args{"care-level"} eq 'enhanced';
     $data{option} = 'Off' if $args{"care-level"} eq 'standard';
 
-    return $self->change_carelevel(%data);
+    return $self->enhanced_care(%data);
 }
 
-=head2 change_carelevel
+=head2 enhanced_care
     
-    $enta-care_level( "service-id" => "ADSL123456", "option" => "On",
+    $enta-enhanced_care( "service-id" => "ADSL123456", "option" => "On",
         "fee" => "15.00" );
 
 Enables or disabled Enhanced Care on a given service. If the optional
@@ -579,7 +580,7 @@ accordingly, otherwise it is set to the default charged by Enta.
 
 =cut
 
-sub change_carelevel {
+sub enhanced_care {
     my ($self, %args) = @_;
     die "You must provide the option parameter plus service identifier"
         unless $args{"option"};
