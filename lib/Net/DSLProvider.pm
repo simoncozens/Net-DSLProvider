@@ -70,12 +70,12 @@ $sigs{services_available} = ["cli|postcode"];
 
 $sigs{verify_mac} = [qw/cli mac/];
 
-$sigs{service_view} = [qw/"ref|telephone|username|service-id"/];
-$sigs{service_details} = [qw/"ref|telephone|username|service-id"/];
+$sigs{service_view} = ["ref|telephone|username|service-id"];
+$sigs{service_details} = ["ref|telephone|username|service-id"];
 
 $sigs{usage_summary} = [qw/year month/];
 
-$sigs{auth_log} = [qw/"ref|telephone|username|service-id"/];
+$sigs{auth_log} = ["ref|telephone|username|service-id"];
 
 
 =head1 EXECUTIVE METHODS
@@ -91,9 +91,9 @@ $sigs{regrade} = [qw/"ref|telephone|username|service-id" prod-id/];
 
 $sigs{care_level} = [qw/"ref|telephone|username|service-id" care-level/];
 
-$sigs{requestmac} = [qw/"ref|telephone|username|service-id"/];
+$sigs{requestmac} = ["ref|telephone|username|service-id"];
 
-$sigs{cease} = [qw/"ref|telephone|username|service-id" crd/];
+$sigs{cease} = ["ref|telephone|username|service-id", "crd"];
 
 =head1 AUTHOR
 

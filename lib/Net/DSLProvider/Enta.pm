@@ -106,8 +106,8 @@ my %formats = (
             }
         }
     },
-    CeaseADSLOrder => { "Username" => "text", "Ref" => "text", "Telephone" => "phone", 
-        CeaseDate => 'dd/mm/yyyy' },
+    CeaseADSLOrder => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone", 
+        CeaseDate => 'ceasedate' },
     ChangeInterleave => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         Interleave => "text" },
     UpdateADSLContact => { "Ref" => "ref", "Username" => "username", Telephone => "telephone",
@@ -121,11 +121,14 @@ sub request_xml {
     my $live = "Test";
     $live = "Live" unless $self->testing;
 
-    my $stupidEnta = 1 if $enta_xml_methods{$method};
-
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n<ResponseBlock Type="$live">\n|;
-    if ( $stupidEnta ) {
-        $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
+    if ( $enta_xml_methods{$method} ) {
+        if ( $method eq 'CeaseADSLOrder' ) {
+            $xml .= qq|<Response Type="ADSLCease">\n<OperationResponse">\n|;
+        }
+        else { 
+            $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
+        }
     } else {
         $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
     }
@@ -157,7 +160,7 @@ sub request_xml {
     };
     $recurse->($formats{$method}, $args); 
 
-    if ( $stupidEnta ) {
+    if ( $enta_xml_methods{$method} ) {
         $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
     } else {
         $xml .= "</OperationResponse>\n</ResponseBlock>";
@@ -244,7 +247,7 @@ sub make_request {
 
 sub convert_input {
     my ($self, $method, $args) = @_;
-    die unless $method && ref $args eq 'HASH';
+    die "convert_input called without method or args hashref" unless $method && ref $args eq 'HASH';
 
     my $data = {};
 
@@ -545,7 +548,7 @@ sub elevatedbestefforts {
     return $self->modifylinefeatures( %$data );
 }
 
-=head change_carelevel
+=head2 change_carelevel
 
     $enta->carei_level( "service-id" -> "ADSL12345", "care-level" => "enhanced" );
 
@@ -738,8 +741,14 @@ sub cease {
     my ($self, %args) = @_;
     $self->_check_params(\%args);
 
-    my %adsl = $self->adslaccount(%args);
-    my $data = { "Ref" => $adsl{adslaccount}->{ourref} };
+    my $data = undef;
+    if ( $args{'service-id'} || $args{'ref'} ) {
+        $data = $self->convert_input("CeaseADSLOrder" ,\%args);
+    }
+    else {
+        my %adsl = $self->adslaccount(%args);
+        $data = { "Ref" => $adsl{adslaccount}->{ourref} };
+    }
 
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $data->{"CeaseDate"} = $d->dmy('/');
