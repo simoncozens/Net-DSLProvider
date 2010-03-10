@@ -489,7 +489,7 @@ Changes the interleaving setting on the given service
 
 sub interleaving {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" interleaving/));
+    $self->_check_params(\%args, ("service-id|ref|telephone|username", "interleaving"));
 
     die "interleaving can only be 'Yes', 'No' or 'Auto'" unless
         $args{"interleaving"} =~ /(Yes|No|Auto)/;
@@ -510,7 +510,7 @@ Sets the Stability Option feature on a service
 
 sub stabilityoption {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
+    $self->_check_params(\%args, ("service-id|ref|telephone|username", "option"));
 
     die "option can only be 'Standard', 'Stable', or 'Super Stable'" unless
         $args{"option"} =~ /(Standard|Stable|Super Stable)/;
@@ -534,7 +534,7 @@ set accordingly, otherwise it is set to the default charged by Enta.
 
 sub elevatedbestefforts {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
+    $self->_check_params(\%args, ("service-id|ref|telephone|username", "option"));
 
     die "option can only be 'Yes' or 'No'" unless
         $args{option} =~ /(Yes|No)/;
@@ -585,7 +585,7 @@ accordingly, otherwise it is set to the default charged by Enta.
 
 sub enhanced_care {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" option/));
+    $self->_check_params(\%args, ("service-id|ref|telephone|username", "option"));
 
     die "option can only be 'On' or 'Off'" unless $args{option} =~ /(On|Off)/;
 
@@ -625,7 +625,7 @@ change(s) made - ie:
 
 sub modifylinefeatures {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|telephone|username" LineFeatures/));
+    $self->_check_params(\%args, ("service-id|ref|telephone|username", "LineFeatures"));
 
     my $data = $self->serviceid(\%args);
     $data->{"LineFeatures"} = $args{"LineFeatures"};
@@ -836,7 +836,7 @@ Returns the ADSL MAX reports for connections which are based upon ADSL MAX
 
 sub max_reports {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"ref|telephone|username|service-id"/));
+    $self->_check_params(\%args, ("ref|telephone|username|service-id"));
     
     my $data = $self->serviceid(\%args);
 
@@ -1012,8 +1012,8 @@ You cannot use ref or service-id
 
 sub product_change {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"ref|username|telephone|service-id" 
-            family cap speed/));
+    $self->_check_params(\%args, ("ref|username|telephone|service-id", 
+            "family", "cap", "speed"));
 
     if ( $args{"ref"} || $args{"service-id"}) {
         my %adsl = $self->adslaccount(%args);
@@ -1085,7 +1085,7 @@ Returns a summary of usage in the given month
 
 sub usage_summary {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|ref|username|telephone"/));
+    $self->_check_params(\%args, ("service-id|ref|username|telephone"));
 
     my $data = $self->serviceid(\%args);
 
@@ -1290,7 +1290,7 @@ of days for how recent.
 
 sub connectionhistory {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/"service-id|telephone|ref|username" days/));
+    $self->_check_params(\%args, ("service-id|telephone|ref|username", "days"));
   
     # Enta ConnectionHistory is keyed from Username only so we need to 
     # obtain the username if we don't have it.

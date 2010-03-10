@@ -87,9 +87,9 @@ These methods do things
 $sigs{order} = [qw/prod-id forename surname street city postcode 
                    cli client-ref prod-id crd/]; 
 
-$sigs{regrade} = [qw/"ref|telephone|username|service-id" prod-id/];
+$sigs{regrade} = ["ref|telephone|username|service-id", "prod-id"];
 
-$sigs{care_level} = [qw/"ref|telephone|username|service-id" care-level/];
+$sigs{care_level} = ["ref|telephone|username|service-id", "care-level"];
 
 $sigs{requestmac} = ["ref|telephone|username|service-id"];
 
