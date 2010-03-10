@@ -1239,14 +1239,27 @@ sub usage_history_detail {
         }
     }
     else {
-        while (my $r = shift @{$response->{ResponseType}->{Day}} ) {
+        if ( ref $response->{ResponseType}->{Day} eq 'ARRAY' ) {
+            while (my $r = shift @{$response->{ResponseType}->{Day}} ) {
+                my %row = ();
+                my $d = Time::Piece->strptime($r->{Date}, "%F");
+                $row{'date'} = $d->strftime($date_format);
+                $row{'totalup'} = $r->{Total}->{Up};
+                $row{'totaldown'} = $r->{Total}->{Down};
+                $row{'peakup'} = $r->{Peak}->{Up};
+                $row{'peakdown'} = $r->{Peak}->{Down};
+
+                push @usage, \%row;
+            }
+        }
+        else {
             my %row = ();
-            my $d = Time::Piece->strptime($r->{Date}, "%F");
+            my $d = Time::Piece->strptime($response->{ResponseType}->{Day}->{Date}, "%F");
             $row{'date'} = $d->strftime($date_format);
-            $row{'totalup'} = $r->{Total}->{Up};
-            $row{'totaldown'} = $r->{Total}->{Down};
-            $row{'peakup'} = $r->{Peak}->{Up};
-            $row{'peakdown'} = $r->{Peak}->{Down};
+            $row{'totalup'} = $response->{ResponseType}->{Day}->{Total}->{Up};
+            $row{'totaldown'} = $response->{ResponseType}->{Day}->{Total}->{Down};
+            $row{'peakup'} = $response->{ResponseType}->{Day}->{Peak}->{Up};
+            $row{'peakdown'} = $response->{ResponseType}->{Day}->{Peak}->{Down};
 
             push @usage, \%row;
         }
