@@ -45,8 +45,20 @@ sub make_request {
     return $resp;
 }
 
+sub order {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args);
+
+    my %resp = $self->make_request("Wssubmitorder", %args);
+
+}
+
 sub services_available {
     my ($self, %args) = @_;
+
+    # Note that this function is different to all the others as it uses a
+    # call via LWP to get the data rather than submitting via XML as all 
+    # the others do.
 
     my $ua = new LWP::UserAgent;
     my $agent = __PACKAGE__ . '/0.1 ';

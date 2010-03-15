@@ -886,6 +886,46 @@ sub max_reports {
     return %line;
 }
 
+=head2 order_eventlog_history
+
+    $enta->order_eventlog_history( username => "myusername" );
+
+Gets the provisioning history for a specified customer order.
+
+Takes "username" as parameter.
+
+Returns an array, each element of which details an order update.
+
+=cut
+
+sub order_eventlog_history {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, ( 'username' ) );
+
+    my $response = $self->make_request("GetAdslInstall", \%args);
+
+    my $dateformat = "%Y-%m-%d";
+    $dateformat = $args{dateformat} if $args{dateformat};
+
+    my @history = ();
+    while ( my $log = shift @{$response->{Response}->{OperationResponse}->{InstallReturns}->{InstallReturn}} ) {
+        my %a = ();
+        my $d = localtime($log->{DateReceived});
+        $a{date} = $d->strftime($dateformat);
+        $a{name} = "status";
+        $a{value} = $log->{OrderType}.' '.$log->{LineItemSubstatus};
+        if ( $log->{LineItemSubstatus} eq 'COMMITTED' ) {
+            print "Adding ".$log->{CommitDate}." to ".$a{value}."\n";
+            my $c = Time::Piece->strptime($log->{CommitDate}, "%d-%b-%Y");
+            $a{value} .= ' for '.$c->strftime($dateformat);
+        }
+
+        push @history, \%a;
+    }
+    
+    return @history;
+}
+
 =head2 service_view
 
     $enta->service_details( "service-id" => 'ADSL12345' );
