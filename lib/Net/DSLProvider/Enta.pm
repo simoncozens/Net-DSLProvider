@@ -898,7 +898,24 @@ Returns an array, each element of which details an order update.
 
 =cut
 
-sub order_eventlog_history {
+sub order_eventlog_history { goto &getadslinstall; }
+
+=head2 getadslinstall
+
+    $enta->getadslinstall( username => "username", dateformat => "%d %b %Y" );
+
+Get's the provisioning history for the specified customer
+
+Returns an array, each element of which is a hash detailing an update as
+follows:
+
+date
+name
+value
+
+=cut
+
+sub getadslinstall {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ( 'username' ) );
 
