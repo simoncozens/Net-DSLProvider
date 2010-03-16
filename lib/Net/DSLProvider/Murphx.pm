@@ -909,7 +909,7 @@ Returns a hash with details including (but not limited to):
 
 sub service_details {
     my ($self, $id) = @_;
-    die "You must provide the service-id parameter" unless $id;
+    $self->_check_params(\%args, qw/service-id/);
 
     my $response = $self->make_request("service_details", {
         "service-id" => $id, "detailed" => 'Y'});
@@ -919,6 +919,26 @@ sub service_details {
         $details{$_} = $response->{block}->{a}->{$_}->{content};
         }
     return %details;
+}
+
+=head2 interleaving_status
+
+    $murphx->interleaving_status( "service-id" => 12345 );
+
+Returns current interleaving status if available or undef;
+
+If not undef status can be one of:
+
+    'opt-in', 'opt-out' or 'auto'
+
+=cut
+
+sub interleaving_status {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/service-id/);
+
+    my %d = $self->service_details( %args );
+    return $d{"max_interleaving"};
 }
 
 =head2 order_history

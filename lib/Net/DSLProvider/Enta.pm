@@ -464,7 +464,7 @@ Given a cli and MAC returns 1 if the MAC is valid.
 
 sub verify_mac {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, (qw/cli mac/));
+    $self->_check_params(\%args, qw/cli mac/);
 
     for (qw/cli mac/) {
         die "You must provide the $_ parameter" unless $args{$_};
@@ -477,6 +477,25 @@ sub verify_mac {
     
     return undef unless $line->{MAC}->{Valid};
     return 1;
+}
+
+=head2 interleaving_status
+
+    $enta->interleaving_status( "service-id" => "ADSL12345" );
+
+Returns the current interleaving status if available
+
+=cut
+
+sub interleaving_status {
+    my ( $self, %args ) = @_;
+    $self->_check_params(\%args, qw/service-id|username|telephone|ref/);
+
+    my $data = $self->serviceid(\%args);
+    my $response = $self->make_request("GetInterleaving", $data);
+
+    return $response->{Response}->{OperationResponse}->{Interleave};
+
 }
 
 =head2 interleaving
