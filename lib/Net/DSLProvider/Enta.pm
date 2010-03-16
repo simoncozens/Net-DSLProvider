@@ -780,8 +780,8 @@ sub requestmac {
     if ( $adsl{"adslaccount"}->{"mac"} ) {
         my $expires = $adsl{"adslaccount"}->{"macexpires"};
         $expires =~ s/\+\d+//;
-        return { "mac" => $adsl{"adslaccount"}->{"mac"},
-                 "expiry_date" => $expires };
+        return ( "mac" => $adsl{"adslaccount"}->{"mac"},
+                 "expiry_date" => $expires );
     }
 
     %args = ( "ref" => $adsl{adslaccount}->{ourref} );
@@ -790,7 +790,7 @@ sub requestmac {
     
     my $response = $self->make_request("RequestMAC", $data );
 
-    return { "mac_requested" => 1 };
+    return ( "mac_requested" => 1 );
 }
 
 =head2 auth_log
@@ -991,6 +991,7 @@ sub adslaccount {
             $adsl{lc $_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
+    $adsl{service_details}->{live} = 'Y' if $adsl{adslaccount}->{status} eq 'Installed';
     return %adsl;
 }
 

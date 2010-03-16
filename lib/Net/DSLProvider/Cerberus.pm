@@ -47,7 +47,13 @@ sub make_request {
 
 sub order {
     my ($self, %args) = @_;
-    $self->_check_params(\%args);
+
+    # Go through the parameters below and remove those that are not mandatory
+    # and those which are covered in the base package sigs{} definition.
+    $self->_check_params(\%args, qw/cli client-ref forename surname company
+        street city postcode sex email ordertype losing-isp mac prod-id
+        inst-id ip-id maint-id serv-id del-pref contract devices
+        ripe-justification skip-line-check /);
 
     my %resp = $self->make_request("Wssubmitorder", %args);
 
