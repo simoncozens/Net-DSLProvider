@@ -95,6 +95,8 @@ $sigs{requestmac} = ["ref|telephone|username|service-id"];
 
 $sigs{cease} = ["ref|telephone|username|service-id", "crd"];
 
+$sigs{change_password} = [qw/ref|telephone|username|service-id password/];
+
 =head1 AUTHOR
 
 Simon Cozens, C<< <simon at simon-cozens.org> >>

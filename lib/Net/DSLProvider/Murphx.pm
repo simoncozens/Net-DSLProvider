@@ -109,6 +109,11 @@ my %formats = (
         "problem-type" => "text", "reported" => "text", 
         "username" => "text",
     },
+    case_view => { "case-id" => "counting" },
+    case_update => { "case-id" => "counting", "reason" => "text",
+        "priority" => "text"
+    },
+    case_history => { "case-id" => "counting" },
     customer_details => { "service-id" => "counting", "detailed" => "yesno" },
     product_details => { "product-id" => "counting", "detailed" => "yesno" },
 );
@@ -202,6 +207,8 @@ Output
 
 sub services_available {
     my ($self, %args) = @_;
+    $self->_check_params(\%args);
+
     %args = ( %args, detailed => "N", ordertype => "migrate" );
 
     my $response = $self->make_request("availability", \%args);
@@ -239,9 +246,8 @@ Returns order-id for the modify order.
 
 sub modify {
     my ($self, %args) = @_;
-    for (qw/ service-id client-ref myref prod-id crd care-level inclusive-transfer test-mode /) {
-        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
-    }
+    $self->_check_params(\%args, qw/service-id client-ref myref prod-id 
+                        crd care-level inclusive-transfer test-mode / );
 
     my $response = $self->make_request("modify", \%args);
 
@@ -262,9 +268,7 @@ Returns 1 for successful password change.
 
 sub change_password {
     my ($self, %args) = @_;
-    for (qw/service-id password/) {
-        if ( !$args{$_} ) { die "You must provide the $_ parameter"; }
-    }
+    $self->_check_params(\%args, qw/service-id password/);
 
     my $response = $self->make_request("change_password", \%args);
 
@@ -375,9 +379,8 @@ with this id to get the results of the Woosh test.
 
 sub woosh_request_oneshot {
     my ($self, %args) = @_;
-    for (qw/ service-id fault-type has-worked disruptive fault-time /) {
-        if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
-    }
+    $self->_check_params(\%args, qw/service-id fault-type has-worked 
+                            disruptive fault-time /);
 
     my $response = $self->make_request("woosh_request_oneshot", \%args);
 
@@ -407,7 +410,7 @@ The return is an date/time sorted array of hashes each of which contains the fol
 
 sub order_eventlog_changes {
     my ($self, %args) = @_;
-    die "You must provide the date parameter" unless $args{"date"};
+    $self->_check_params(\%args, qw/date/);
 
     my $response = $self->make_request("order_eventlog_changes", \%args);
 
@@ -462,9 +465,7 @@ Returns an array, each element of which is a hash containing:
 
 sub service_auth_log {
     my ($self, %args) = @_;
-    for (qw/service-id rows/) {
-        if (!$args{$_}) { die "You must provide the $_ parameter"; }
-    }
+    $self->_check_params(\%args, qw/service-id rows/);
 
     my $response = $self->make_request("service_auth_log", \%args);
 
@@ -908,11 +909,12 @@ Returns a hash with details including (but not limited to):
 =cut
 
 sub service_details {
-    my ($self, $id) = @_;
+    my ($self, %args) = @_;
     $self->_check_params(\%args, qw/service-id/);
 
-    my $response = $self->make_request("service_details", {
-        "service-id" => $id, "detailed" => 'Y'});
+    my $data = { detailed => 'Y', "service-id" => $args{"service-id"} };
+
+    my $response = $self->make_request("service_details", $data);
 
     my %details = ();
     foreach (keys %{$response->{block}->{a}} ) {
@@ -1267,6 +1269,56 @@ sub customer_details {
         $a{$_} = $response->{block}->{a}->{$_}->{content};
     }
     return %a;
+}
+
+=head2 case_new
+
+    $murphx->case_new( "service-id" => 12345, "service-type" => "adsl",
+        "username" => "username@realm", "cli" => "02071112222", 
+        "os" => "Linux", "hardware-product" => "Other", 
+        "problem-type" => "Connection", "experienced" => "2010-01-01",
+        "reported" => "User does not have sync", "priority" => "High"  );
+
+=cut
+
+sub case_new {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/service-id problem-type 
+        experienced reported priority/);
+
+    $args{"client-id"} = $self->clientid;
+    $args{"appsource"} = "XPS";
+    $args{"service-type"} = "adsl";
+
+    my %service = $self->service_details( %args );
+
+    $args{username} = $service{username};
+    $args{cli} = $service{cli};
+
+    my $response = $self->make_request("case_new", \%args);
+
+    return $response->{a}->{"case-id"}->{content};
+}
+
+=head2 case_view
+
+    $murphx->case_view( "12345" );
+
+Returns a hash containing details of an existing case
+
+=cut
+
+sub case_view {
+    my ($self, $id) = @_;
+    $self->_check_params({"case-id" => $id}, qw/case-id/);
+
+    my $response = $self->make_request("case_view", { "case-id" => $id });
+    
+    my %case = ();
+    foreach (keys %{$response->{block}->{a}}) {
+        $case{$_} = $response->{block}->{a}->{$_}->{content};
+    }
+    return %case;
 }
 
 =head2 regrade_options
