@@ -1307,17 +1307,17 @@ sub case_new {
 
 =head2 case_view
 
-    $murphx->case_view( "12345" );
+    $murphx->case_view( "case-id" => "12345" );
 
 Returns a hash containing details of an existing case
 
 =cut
 
 sub case_view {
-    my ($self, $id) = @_;
-    $self->_check_params({"case-id" => $id}, qw/case-id/);
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/case-id/);
 
-    my $response = $self->make_request("case_view", { "case-id" => $id });
+    my $response = $self->make_request("case_view", \%args);
     
     my %case = ();
     foreach (keys %{$response->{block}->{a}}) {
