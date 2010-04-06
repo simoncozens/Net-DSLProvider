@@ -114,6 +114,11 @@ my %formats = (
         "priority" => "text"
     },
     case_history => { "case-id" => "counting" },
+    case_search => { "case-id" => "counting", "service-id" => "counting",
+        "customer-id" => "counting", "service-type" => "text", 
+        "username" => "text", "partial-cli" => "text", engineer => "text",
+        "problem-type" => "text", "priority" => "text", status => "text",
+        },
     customer_details => { "service-id" => "counting", "detailed" => "yesno" },
     product_details => { "product-id" => "counting", "detailed" => "yesno" },
 );
@@ -1319,6 +1324,91 @@ sub case_view {
         $case{$_} = $response->{block}->{a}->{$_}->{content};
     }
     return %case;
+}
+
+=head2 case_search
+
+    $murphx->case_search( "service-id" => 12345 );
+
+Returns basic details of all cases matching a given search.
+
+Search parameters can include the following (and must include at least
+one of them):
+
+    case-id, service-id, customer-id, service-type, username, partial-cli,
+    engineer, problem-type, priority or status
+
+Returns an array, each element of which is a hash providing basic
+details of the case. Use case_view and case_history to get more details.
+
+=cut 
+
+sub case_search {
+    my ($self, %args) = @_;
+    my $args = join('|', keys %{$formats{case_search}});
+    $self->_check_params(\%args, ($args));
+
+    my $response = $self->make_request("case_search", \%args);
+
+    my @cases = ();
+
+    if ( ref $response->{block}->{block} eq "ARRAY" ) {
+        while ( my $b = shift @{$response->{block}->{block}} ) {
+            my %a = ();
+            foreach (keys %{$b->{a}} ) {
+                $a{$_} = $b->{a}->{$_}->{content};
+            }
+            push @cases, \%a;
+        }
+    }
+    else {
+        my %a = ();
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+        }
+        push @cases, \%a;
+    }
+
+    return @cases;
+}
+
+=head2 case_history
+
+    $murphx->case_history( "case-id" => "12345" );
+
+Returns a full history for the given case-id. 
+
+Return is an array, each element of which is a hash detailing a
+specific update to the case.
+
+=cut 
+
+sub case_history {
+    my ( $self, %args ) = @_;
+    $self->_check_params( \%args, qw/case-id/ );
+
+    my $response = $self->make_request( "case_history", \%args );
+
+    my @cases = ();
+
+    if ( ref $response->{block}->{block} eq "ARRAY" ) {
+        while ( my $b = shift @{$response->{block}->{block}} ) {
+            my %a = ();
+            foreach (keys %{$b->{a}} ) {
+                $a{$_} = $b->{a}->{$_}->{content};
+            }
+            push @cases, \%a;
+        }
+    }
+    else {
+        my %a = ();
+        foreach (keys %{$response->{block}->{block}->{a}} ) {
+            $a{$_} = $response->{block}->{block}->{a}->{$_}->{content};
+        }
+        push @cases, \%a;
+    }
+
+    return @cases;
 }
 
 =head2 regrade_options
