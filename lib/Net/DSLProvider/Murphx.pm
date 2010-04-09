@@ -1302,7 +1302,9 @@ sub case_new {
 
     my $response = $self->make_request("case_new", \%args);
 
-    return $response->{a}->{"case-id"}->{content};
+# This is not finished. I need to determine the correct part of $response to return
+
+    return $response;
 }
 
 =head2 case_view
@@ -1409,6 +1411,26 @@ sub case_history {
     }
 
     return @cases;
+}
+
+=head2 case_update
+
+    $murphx->case_update( "case-id" => "12345", "priority" => "High",
+        "reason" => "More information about problem" );
+
+Updates the given case with update given in "reason".
+
+Returns 1 if update completed.
+
+=cut
+
+sub case_update {
+    my ( $self, %args ) = @_;
+    $self->_check_params(\%args, qw/case-id priority reason/);
+
+    my $response = $self->make_request("case_update", \%args);
+
+    return 1;
 }
 
 =head2 regrade_options

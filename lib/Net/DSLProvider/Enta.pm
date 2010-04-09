@@ -1447,6 +1447,22 @@ sub connectionhistory {
     return @history;
 }
 
+=head2 case_search
+
+=cut
+
+sub case_search {
+    my ( $self, %args ) = @_;
+    $self->_check_params(\%args, qw/ref|username|service-id/);
+
+    my $data = $self->serviceid(\%args);
+
+    my $response = $self->make_request("GetNotes", $data);
+
+    use Data::Dumper;
+    print Dumper $response;
+}
+
 =head2 first_crd
 
     $enta->first_crd();
