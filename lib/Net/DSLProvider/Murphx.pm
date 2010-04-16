@@ -1561,6 +1561,17 @@ sub order {
     return %order;
 }
 
+=head2 terms_and_conditions
+
+Returns the terms-and-conditions to be presented to the user for signup
+of a broadband product.
+
+=cut
+
+sub terms_and_conditions {
+    return "XXX Get terms and conditions dynamically, or just put them here";
+}
+
 =head2 first_crd
 
     $murphx->first_crd( "order-type" => "provide", "product-id" => "1595" );

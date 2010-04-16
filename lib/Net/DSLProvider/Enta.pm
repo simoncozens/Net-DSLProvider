@@ -777,7 +777,7 @@ sub cease {
     die "Cease order not accepted by Enta" 
         unless $response->{Response}->{Type} eq 'Accept';
 
-    return { "order_id" => $response->{Response}->{OperationResponse}->{OurRef} };
+    return $response->{Response}->{OperationResponse}->{OurRef};
 }
 
 =head2 requestmac
@@ -1074,6 +1074,16 @@ sub order {
              "payment_code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} );
 }
 
+=head2 terms_and_conditions
+
+Returns the terms-and-conditions to be presented to the user for signup
+of a broadband product.
+
+=cut
+
+sub terms_and_conditions {
+    return "XXX Get terms and conditions dynamically, or just put them here";
+}
 
 =head2 product_change
 
