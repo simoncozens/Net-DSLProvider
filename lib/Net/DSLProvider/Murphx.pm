@@ -655,7 +655,7 @@ sub cease {
     return $response->{a}->{"order_id"}->{content};
 }
 
-=head2 requestmac
+=head2 request_mac
 
     $murphx->requestmac( "service-id" => '12345', "reason" => "EU wishes to change ISP" );
 
@@ -666,7 +666,7 @@ Returns a hash comprising: mac, expiry-date
 
 =cut
 
-sub requestmac {
+sub request_mac {
     my ($self, %args) = @_;
     for (qw/service-id reason/) {
         if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
