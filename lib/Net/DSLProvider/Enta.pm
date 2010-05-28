@@ -1010,7 +1010,18 @@ sub adslaccount {
             $adsl{lc $_} = $response->{Response}->{OperationResponse}->{$_};
         }
     }
+    $adsl{service_details}->{live} = 'N';
     $adsl{service_details}->{live} = 'Y' if $adsl{adslaccount}->{status} eq 'Installed';
+
+    my ($activation_date, $junk) = split(/\+/, $adsl{adslaccount}->{provisiondate});
+    $activation_date = Time::Piece->strptime($activation_date, "%a, %d %b %Y %H:%M:%S");
+
+    if ( $args{dateformat} ) {
+        $adsl{service_details}->{activation_date} = $activation_date->strftime($args{dateformat});
+    }
+    else {
+        $adsl{service_details}->{activation_date} = $activation_date->ymd;
+    }
     return %adsl;
 }
 
@@ -1469,8 +1480,18 @@ sub case_search {
 
     my $response = $self->make_request("GetNotes", $data);
 
-    use Data::Dumper;
-    print Dumper $response;
+    my @c = ();
+    for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
+        my %n = ();
+        $c->{TimeStamp} =~ /(.*) \+0\d00/;
+        my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
+        $n{description} = $c->{Text};
+        $n{engineer} = 'Enta Staff';
+        $n{engineer} = $c->{User} if $c->{User} =~ /\@/;
+        $n{logged} = $t->ymd . ' ' . $t->hms;
+        push @c, \%n;
+    }
+    return @c;
 }
 
 =head2 first_crd
