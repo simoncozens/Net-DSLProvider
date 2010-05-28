@@ -697,9 +697,8 @@ sub order_updates_since {
             $ref = $r->{"telephone"} if ! $ref;
         }
 
-        my ($date, $bst) = split /\+/, $r->{"timestamp"};
-        chomp $date;
-        my $t = Time::Piece->strptime($date, "%a, %d %b %Y %H:%M:%S");
+        $r->{"timestamp"} =~ /(.*) \+0\d00/;
+        my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
 
         $a{"date"} = $t->strftime($date_format);
         $a{"order_id"} = $ref;
@@ -1013,8 +1012,8 @@ sub adslaccount {
     $adsl{service_details}->{live} = 'N';
     $adsl{service_details}->{live} = 'Y' if $adsl{adslaccount}->{status} eq 'Installed';
 
-    my ($activation_date, $junk) = split(/\+/, $adsl{adslaccount}->{provisiondate});
-    $activation_date = Time::Piece->strptime($activation_date, "%a, %d %b %Y %H:%M:%S");
+    $adsl{adslaccount}->{provisiondate} =~ /(.*) \+0\d00/;
+    my $activation_date = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
 
     if ( $args{dateformat} ) {
         $adsl{service_details}->{activation_date} = $activation_date->strftime($args{dateformat});
@@ -1484,11 +1483,15 @@ sub case_search {
     for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
         my %n = ();
         $c->{TimeStamp} =~ /(.*) \+0\d00/;
+
+        my $date_format = "%Y-%m-%d %H:%M:%S";
+        $date_format = $args{dateformat} if $args{dateformat};
+
         my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
         $n{description} = $c->{Text};
         $n{engineer} = 'Enta Staff';
         $n{engineer} = $c->{User} if $c->{User} =~ /\@/;
-        $n{logged} = $t->ymd . ' ' . $t->hms;
+        $n{logged} = $t->strftime($date_format);
         push @c, \%n;
     }
     return @c;
