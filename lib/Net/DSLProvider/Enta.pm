@@ -1482,11 +1482,11 @@ sub case_search {
     my @c = ();
     for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
         my %n = ();
-        $c->{TimeStamp} =~ /(.*) \+0\d00/;
 
         my $date_format = "%Y-%m-%d %H:%M:%S";
         $date_format = $args{dateformat} if $args{dateformat};
 
+        $c->{TimeStamp} =~ /(.*) \+0\d00/;
         my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
         $n{description} = $c->{Text};
         $n{engineer} = 'Enta Staff';
