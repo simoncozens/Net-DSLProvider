@@ -647,12 +647,18 @@ Returns order-id which is the ID of the cease order for tracking purposes.
 
 sub cease {
     my ($self, %args) = @_;
-    for (qw/service-id crd client-ref/) {
+    for (qw/service-id crd client-ref reason/) {
         if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("cease", \%args);
-    return $response->{a}->{"order_id"}->{content};
+    # The cease method parameters have to be passed inside $data->{order}
+    my $data = { };
+    foreach (keys %args) {
+        $data->{order}{$_} = $args{$_};
+    }
+
+    my $response = $self->make_request("cease", $data);
+    return $response->{"order_id"}->{content};
 }
 
 =head2 request_mac
