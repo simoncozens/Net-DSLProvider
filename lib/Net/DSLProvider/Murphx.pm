@@ -1128,7 +1128,7 @@ sub service_suspend {
     return 1;
 }
 
-=head walledgarden_status
+=head2 walledgarden_status
 
     $murphx->walledgarden_status( "service-id" => 12345 );
 
@@ -1181,7 +1181,7 @@ sub walledgarden_disable {
     return 1;
 }
 
-=head change_carelevel
+=head2 change_carelevel
 
     $murphx->change_carelevel( "service-id" -> 12345, "care-level" => "enhanced" );
 
@@ -1201,7 +1201,7 @@ sub change_carelevel {
     return 1;
 }
 
-=head change_carelevel
+=head2 change_carelevel
 
     $murphx->carei_level( "service-id" -> 12345, "care-level" => "enhanced" );
 
