@@ -765,7 +765,7 @@ sub cease {
     }
     else {
         my %adsl = $self->adslaccount(%args);
-        $data = { "Ref" => $adsl{adslaccount}->{ourref} };
+        $data = { "username" => $adsl{adslaccount}->{username} };
     }
 
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
