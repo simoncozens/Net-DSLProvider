@@ -19,12 +19,11 @@ use Date::Holidays::EnglandWales;
 
 my %enta_xml_methods = ( "ProductChange" => 1, 
     "ModifyLineFeatures" => 1, "UpdateADSLContact" => 1,
-    "CreateADSLOrder" => 1, CeaseADSLOrder => 1 );
+    "CreateADSLOrder" => 1 );
 
 my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
     "ModifyLineFeatures" => "ModifyLineFeatures",
     "UpdateADSLContact" => "UpdateADSLContact",
-    "CeaseADSLOrder" => "CeaseADSLOrder",
     "ProductChange" => "ProductChange" );
 
 my %formats = (
@@ -107,7 +106,7 @@ my %formats = (
         }
     },
     CeaseADSLOrder => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone", 
-        CeaseDate => 'ceasedate' },
+        ceaseDate => 'ceasedate' },
     ChangeInterleave => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         Interleave => "text" },
     UpdateADSLContact => { "Ref" => "ref", "Username" => "username", Telephone => "telephone",
@@ -217,6 +216,10 @@ sub make_request {
     if ( $self->debug ) { warn $res->content; }
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
+
+    # Sometimes Enta doesn't return anything at all on success
+    return undef unless $res->content;
+
     my $resp_o = XMLin($res->content, SuppressEmpty => 1);
 
     if ($resp_o->{Response}->{Type} eq 'Error') { die $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
@@ -769,7 +772,7 @@ sub cease {
     }
 
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
-    $data->{"CeaseDate"} = $d->dmy('/');
+    $data->{"ceaseDate"} = $d->dmy('/');
     
     my $response = $self->make_request("CeaseADSLOrder", $data); 
 
