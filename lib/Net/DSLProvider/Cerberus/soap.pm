@@ -63,6 +63,34 @@ Wsdslgetstats => {
       SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
     ], # end parameters
   }, # end Wsdslgetstats
+Wsrequestcancellation => {
+    endpoint => 'http://nc.cerberusnetworks.co.uk/websvcmgr.php',
+    soapaction => '',
+    namespace => 'http://nc.cerberusnetworks.co.uk',
+    parameters => [
+      SOAP::Data->new(name => 'CLI', type => 'xsd:string', attr => {}),
+      SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
+      SOAP::Data->new(name => 'CeaseDate', type => 'xsd:string', attr => {}),
+    ],
+  }, # end Wsrequestcancellation
+Wsrequestmac => {
+    endpoint => 'http://nc.cerberusnetworks.co.uk/websvcmgr.php',
+    soapaction => '',
+    namespace => 'http://nc.cerberusnetworks.co.uk',
+    parameters => [
+      SOAP::Data->new(name => 'CLI', type => 'xsd:string', attr => {}),
+      SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
+    ],
+  }, # end Wsrequestmac
+Wsgetexchangeevents => {
+    endpoint => 'http://nc.cerberusnetworks.co.uk/websvcmgr.php',
+    soapaction => '',
+    namespace => 'http://nc.cerberusnetworks.co.uk',
+    parameters => [
+      SOAP::Data->new(name => 'CLI', type => 'xsd:string', attr => {}),
+      SOAP::Data->new(name => 'ClientID', type => 'xsd:string', attr => {}),
+    ],
+  }, # end Wsgetexchangeevents
 ); # end my %methods
 
 use SOAP::Lite ; # +trace => all;
