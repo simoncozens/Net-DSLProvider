@@ -793,7 +793,7 @@ submits a request for the MAC which can be obtained later.
 
 =cut
 
-sub requestmac {
+sub request_mac {
     my ($self, %args) = @_;
     $self->_check_params(\%args);
 

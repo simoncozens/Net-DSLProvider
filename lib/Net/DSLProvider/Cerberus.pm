@@ -87,7 +87,8 @@ Parameters:
 
 Returns a hash containing the following:
 
-    status : 
+    status : either "Confirmed" or "Committed"
+    requested_date : date the cease order was placed in ISO format
     service_cease : date the service will cease in ISO format
     billing_cease : date the billing for the service will end (ISO format)
 
@@ -104,11 +105,25 @@ sub cease {
 
     my %resp = $self->make_request("Wsrequestcancellation", %args);
 
-    return %{$resp->{Xml_cancellations}};a
+    my $result = $resp->{Xml_cancellations}->{A_Result};
+    if ( $result == 11 ) {
+        croak "No active line found";
+    } elsif ( $result == 12 || $result == 22 ) {
+        croak "crd invalid";
+    } elsif ( $result == 13 ) {
+        croak "Line is secondary. Cease must be placed on primary line";
+    } elsif ( $result == 21 ) {
+        croak "Existing cease order cannot be amended";
+    }
+        
+        /^1$/   &&  { $result = 
 
     croak "Cease not possible" unless $resp->{Xml_cancellations}->{A_Result} == 1;
     my %rv = ();
     $rv{status} = $resp->{Xml_cancellations}->{A_Status};
+
+    my $r = Time::Piece->strptime($resp->{Xml_cancellations}->{D_RequestReceived}, "%d/%m/%Y");
+    $rv{requested_date} = $r->ymd;
 
     my $s = Time::Piece->strptime($resp->{Xml_cancellations}->{D_ServiceCease}, "%d/%m/%Y");
     $rv{service_cease} = $s->ymd;
@@ -117,6 +132,75 @@ sub cease {
     $rv{billing_cease} = $b->ymd;
 
     return %rv;
+}
+
+=head2 request_mac
+
+Request a MAC for the specified connection.
+
+If the MAC is available it is returned along with the expiry date in a
+hash as follows:
+
+    mac
+    expiry_date
+
+If the MAC has been sucessfully requested the hash will contain only a
+mac_requested key.
+
+If the MAC cannot be requested the method will croak an error message 
+stating why it cannot be provided.
+
+=cut
+
+sub request_mac {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/cli/);
+
+    my %resp = $self->make_request("Wsrequestmac", %args);
+
+    my $result = $resp->{Xml_cancellations}->{A_Result};
+    my %rv = ();
+
+    if ( $result == 14 ) {
+        croak "No active line found";
+    } elsif ( $result == 15 ) {
+        croak "MAC not available for this network";
+    } elsif ( $result == 1 || $result == 11 ) {
+        $rv{mac} = $resp->{Xml_macs}->{A_MAC};
+        my $e = Time::Piece->strptime($resp->{Xml_macs}->{D_Expiry}, "%d/%m/%Y");
+        $rv{expiry_date} = $e->ymd;
+    } elsif ( $result == 2 || $result == 12 ) {
+        %rv = ( "mac_requested" => 1 );
+    } elsif ( $result == 3 || $result == 13 ) {
+        croak "MAC Request Failed. Please contact support";
+    }
+
+    return %rv;
+}
+
+=head2 interleaving
+
+Changes the interleaving option for the specified connection.
+
+Parameters:
+    cli (mandatory)
+    interleave-code (mandatory)
+    snr-code (mandatory)
+
+Returns 1 if successful
+
+=cut
+
+sub interleaving {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/cli/);
+
+    my %resp = $self->make_request("Wsupdateprofile", %args);
+
+    my $result = $resp->{Xml_update_profile}->{ResultCode};
+    croak "Cannot change interleaving" if $result > 1;
+
+    return 1;
 }
 
 
