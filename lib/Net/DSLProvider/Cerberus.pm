@@ -8,13 +8,16 @@ use LWP;
 __PACKAGE__->mk_accessors(qw/clientid dslcheckuser dslcheckpass/);
 
 my %fields = (
-    Wsfinddslline => [ qw/ cli / ],
-    Wsdslgetstats => [ qw/ cli / ],
-    Wsupdateprofile => [ qw/ cli "interleave-code" "snr-code" / ],
+    Wsfinddslline => [ qw/ cli clientid / ],
+    Wsdslgetstats => [ qw/ cli clientid / ],
+    Wsupdateprofile => [ qw/ cli clientid "interleave-code" "snr-code" / ],
     Wssubmitorder => [ qw/ cli "client-ref" forename surname company
         street city postcode sex email ordertype "losing-isp" mac
         "prod-id" "inst-id" "ip-id" "maint-id" "serv-id" "del-pref"
         contract devices "ripe-justification" "skip-line-check" / ],
+    Wsrequestcancellation => [ qw/ cli clientid crd / ],
+    Wsrequestmac => [ qw/ cli clientid / ],
+    Wsgetexchangeevents => [qw/ cli clientid / ],
         );
 
 sub _credentials {
@@ -37,9 +40,13 @@ sub make_request {
     my @args = ();
 
     for my $key ( @{$fields{$method}} ) {
+        if ( $key eq 'clientid' ) {
+            # The clientid parameter needs to be passed in the right order
+            push @args, $self->clientid;
+            next;
+        }
         push @args, $args{$key};
     }
-    push @args, $self->clientid;
 
     my $resp = Net::DSLProvider::Cerberus::soap->$method(@args, $self->_credentials);
     return $resp;
@@ -58,6 +65,42 @@ sub order {
     my %resp = $self->make_request("Wssubmitorder", %args);
 
 }
+
+=head2 cease
+
+Cease order management. 
+
+If the crd parameter is passed and no cease order is already in place a
+new cease order is placed against the specified cli.
+
+If a cease order is already in place on the specified cli and a crd is 
+passed an attempt is made to change the cease date however this will only
+succeed if the order state is not already "Committed".
+
+If the crd parameter is not passed and a cease order is already in 
+progress this method will return details of the existing cease order.
+
+Parameters:
+    cli (mandatory)
+    crd (optional) Must be at least 5 working days in the future
+
+=cut
+
+sub cease {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/cli/);
+
+    if ( $args{crd} ) {
+        my $d = Time::Piece->new($args{crd}, "%F");
+        $args{crd} = $d->strftime("%d/%m/%Y");
+    }
+
+    my %resp = $self->make_request("Wsrequestcancellation", %args);a
+
+    return %{$resp->{Xml_cancellations}};
+}
+
+
 
 =head2 terms_and_conditions
 
@@ -98,17 +141,17 @@ sub services_available {
     }
 
     my @sv = ();
-    push @sv, { 'product_id' => 'DS 006013',
+    push @sv, { 'product_id' => 'Cerberus Home',
                 'product_name' => 'LLU Up to 8Mb ADSL2+ Home Connection',
                 'max_speed' => $down,
                 'first_date' => $t->ymd };
 
-    push @sv, { 'product_id' => 'DS 006010',
+    push @sv, { 'product_id' => 'Cerberus Standard',
                 'product_name' => 'LLU Premium Up to 24Mb ADSL2+ Standard Connection',
                 'max_speed' => $down,
                 'first_date' => $t->ymd };
 
-    push @sv, { 'product_id' => 'DS 006013',
+    push @sv, { 'product_id' => 'Cerberus Business',
                 'product_name' => 'LLU Premium Up to 24Mb ADSL2+ Business Connection inc 1 Static IP',
                 'max_speed' => $down,
                 'first_date' => $t->ymd };
