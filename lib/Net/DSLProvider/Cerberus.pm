@@ -63,7 +63,8 @@ sub order {
         ripe-justification skip-line-check /);
 
     my %resp = $self->make_request("Wssubmitorder", %args);
-
+    return unless $resp->{Xml_order_submission_dsl}->{Xml_Result} == 1;
+    return 1;
 }
 
 =head2 cease
@@ -84,6 +85,12 @@ Parameters:
     cli (mandatory)
     crd (optional) Must be at least 5 working days in the future
 
+Returns a hash containing the following:
+
+    status : 
+    service_cease : date the service will cease in ISO format
+    billing_cease : date the billing for the service will end (ISO format)
+
 =cut
 
 sub cease {
@@ -95,9 +102,21 @@ sub cease {
         $args{crd} = $d->strftime("%d/%m/%Y");
     }
 
-    my %resp = $self->make_request("Wsrequestcancellation", %args);a
+    my %resp = $self->make_request("Wsrequestcancellation", %args);
 
-    return %{$resp->{Xml_cancellations}};
+    return %{$resp->{Xml_cancellations}};a
+
+    croak "Cease not possible" unless $resp->{Xml_cancellations}->{A_Result} == 1;
+    my %rv = ();
+    $rv{status} = $resp->{Xml_cancellations}->{A_Status};
+
+    my $s = Time::Piece->strptime($resp->{Xml_cancellations}->{D_ServiceCease}, "%d/%m/%Y");
+    $rv{service_cease} = $s->ymd;
+
+    my $b = Time::Piece->strptime($resp->{Xml_cancellations}->{D_BillingCease}, "%d/%m/%Y");
+    $rv{billing_cease} = $b->ymd;
+
+    return %rv;
 }
 
 
