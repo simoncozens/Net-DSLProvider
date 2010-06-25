@@ -193,7 +193,7 @@ Returns 1 if successful
 
 sub interleaving {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, qw/cli/);
+    $self->_check_params(\%args, qw/cli interleave-code snr-code/);
 
     my %resp = $self->make_request("Wsupdateprofile", %args);
 
