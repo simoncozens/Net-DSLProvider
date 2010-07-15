@@ -1064,10 +1064,13 @@ sub order {
             billing-period contract-term initial-payment ongoing-payment
             payment-method totl max-interleaving/ );
 
-    if ( $args{"customer-id"} eq 'New' ) {
-        for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
-            ctelephone cemail/) {
+    for (qw/ctitle cforename csurname cstreet ctown ccounty cpostcode
+        ctelephone cemail/) {
+        if ( $args{"customer-id"} eq 'New' ) {
             push @required, $_;
+        }
+        else {
+            delete $args{$_} if $args{$_};
         }
     }
 
