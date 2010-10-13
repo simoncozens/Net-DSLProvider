@@ -225,6 +225,27 @@ sub services_available {
     }
 
     my @rv = ();
+
+    if ( $args{'qualification'} ) {
+        my $result = {};
+        my $a = $response->{block}->{availability}->{block};
+        foreach (qw/classic max 2plus fttc/) {
+            my $q = $a->{$_.'_qualification'};
+            if ( $_ ne 'fttc' ) {
+                $result->{$_}->{'down_speed'} = $q->{a}->{'likely_max_speed'}->{content};
+                if ( $_ eq '2plus' && $q->{block}->{'name'} eq 'annex-m' ) {
+                    $result->{'2plus'}->{'annexm'}->{'up'} = $q->{block}->{a}->{'likely_max_speed_up'}->{content};
+                    $result->{'2plus'}->{'annexm'}->{'down'} = $q->{block}->{a}->{'likely_max_speed_down'}->{content};
+                }
+            }
+            else {
+                $result->{$_}->{'down_speed'} = $q->{a}->{'likely_max_speed_down'}->{content};
+                $result->{$_}->{'up_speed'} = $q->{a}->{'likely_max_speed_up'}->{content};
+            }
+
+        }
+        push @rv, $result;
+    }
     while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
         push @rv,
             { product_id   => $a->{a}->{'product_id'}->{content},
