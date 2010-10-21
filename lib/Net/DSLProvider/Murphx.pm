@@ -214,7 +214,7 @@ sub services_available {
     my ($self, %args) = @_;
     $self->_check_params(\%args);
 
-    %args = ( %args, detailed => "N", ordertype => "migrate" );
+    %args = ( %args, detailed => "Y", ordertype => "migrate" );
 
     my $response = $self->make_request("availability", \%args);
 
@@ -225,7 +225,6 @@ sub services_available {
     }
 
     my @rv = ();
-
     if ( $args{'qualification'} ) {
         my $result = {};
         my $a = $response->{block}->{availability}->{block};
@@ -242,8 +241,9 @@ sub services_available {
                 $result->{$_}->{'down_speed'} = $q->{a}->{'likely_max_speed_down'}->{content};
                 $result->{$_}->{'up_speed'} = $q->{a}->{'likely_max_speed_up'}->{content};
             }
-
+        $result->{$_}->{first_date} = $crd{1317}; # ADSL MAX Classic first available CRD
         }
+        return if ! $result->{classic}->{down_speed} > 0;
         push @rv, $result;
     }
     while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
