@@ -322,6 +322,7 @@ sub services_available {
     }
 
     my %rv = ();
+    my $top = undef;
 
     if ( $details{FixedRate}->{RAG} =~ /(R|A|G)/ && 
         $details{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
@@ -334,18 +335,44 @@ sub services_available {
     }
 
     if ( $details{FixedRate}->{RAG} eq "G" && 
-        $details{RateAdaptive}->{RAG} eq "G" ) {a
+        $details{RateAdaptive}->{RAG} eq "G" ) {
         $rv{qualification}->{classic} = 2048000;
     }
+    $top = $rv{qualification}->{classic};
 
     if ( $details{Max}->{RAG} ne "R" ) {
-        $rv{qualification}->{max} = $details{Max}->{Speed};
+        $rv{qualification}->{max} = $details{Max}->{Speed} * 1024;
+        $top = $rv{qualification}->{max};
     }
 
     if ( $details{WBC}->{RAG} && $details{WBC}->{RAG} ne "R" ) {
-        $rv{qualification}->{2plus} = $details{WBC}->{Speed};
+        $rv{qualification}->{'2plus'} = $details{WBC}->{Speed} * 1024;
+        $top = $rv{qualification}->{'2plus'};
     }
+
+    if ( $details{FullMsg} =~ /WBC FTTC Broadband where consumers have received downstream line speed of (.*)\.\dMbps and upstream line speed of (.*)\.\dMbps/g ) {
+        $rv{qualification}->{fttc} = {
+            down => $1 * 1024*1024,
+            up => $2 * 1024*1024
+        };
+    }
+
     $rv{qualification}->{'first_date'} = $t->ymd;
+    foreach (qw/FAM1 FAM3 FAM30 FAM60 FAM90 FAM120 BUS15/) {
+        $rv{$_} = {
+            first_date => $t->ymd,
+            product_name => $_,
+            max_speed => $top
+        };
+    }   
+    foreach (qw/BUS45 BUS90 BUS135 BUS180/) {
+        $rv{$_} = {
+            first_date => $t->ymd,
+            product_name => $_,
+            max_speed => defined $rv{qualification}->{fttc}->{down} ? $rv{qualification}->{fttc}->{down} : $top
+        };
+    }
+
     return %rv;
 }
 
