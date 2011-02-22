@@ -294,13 +294,7 @@ sub serviceid {
 
     $enta->services_available ( cli => "02072221122" );
 
-Returns an array of hashes which details services available on the given 
-
-
-returns a hash the keys of which line speeds available:
-    FIXED500, FIXED1000, FIXED2000, RA8, RA24
-
-and the values are the maximum estimated download speed.
+Returns a hash showing line qualification data    
 
 =cut
 
@@ -327,56 +321,32 @@ sub services_available {
         $t += ONE_DAY;
     }
 
-    my @services = ();
+    my %rv = ();
 
     if ( $details{FixedRate}->{RAG} =~ /(R|A|G)/ && 
         $details{RateAdaptive}->{RAG} =~ /^(A|G)$/ ) {
-        push @services, {
-            "first_date" => $t->ymd,
-            "product_id" => "FIXED500",
-            "product_name" => "512 Kb/s Fixed Speed",
-            "max_speed" => "512",
-        };
+        $rv{qualification}->{classic} = 512000;
     }
 
     if ( $details{FixedRate}->{RAG} =~ /(A|G)/ &&
         $details{RateAdaptive}->{RAG} eq "G" ) {
-        push @services, {
-            "first_date" => $t->ymd,
-            "product_id" => "FIXED1000",
-            "product_name" => "1 Mb/s Fixed Speed",
-            "max_speed" => "1024",
-        };
+        $rv{qualification}->{classic} = 1024000;
     }
 
     if ( $details{FixedRate}->{RAG} eq "G" && 
-        $details{RateAdaptive}->{RAG} eq "G" ) {
-        push @services, {
-            "first_date" => $t->ymd,
-            "product_id" => "FIXED2000",
-            "product_name" => "2 Mb/s Fixed Speed",
-            "max_speed" => "2048",
-        };
+        $details{RateAdaptive}->{RAG} eq "G" ) {a
+        $rv{qualification}->{classic} = 2048000;
     }
 
     if ( $details{Max}->{RAG} ne "R" ) {
-        push @services, {
-            "first_date" => $t->ymd,
-            "product_id" => "RA8",
-            "product_name" => "ADSL MAX Up to 8Mb/s",
-            "max_speed" => $details{Max}->{Speed},
-        };
+        $rv{qualification}->{max} = $details{Max}->{Speed};
     }
 
     if ( $details{WBC}->{RAG} && $details{WBC}->{RAG} ne "R" ) {
-        push @services, {
-            "first_date" => $t->ymd,
-            "product_id" => "RA24",
-            "product_name" => "ADSL2+ Up to 24Mb/s",
-            "max_speed" => $details{WBC}->{Speed}
-        };
+        $rv{qualification}->{2plus} = $details{WBC}->{Speed};
     }
-    return @services;
+    $rv{qualification}->{'first_date'} = $t->ymd;
+    return %rv;
 }
 
 =head2 regrade_options

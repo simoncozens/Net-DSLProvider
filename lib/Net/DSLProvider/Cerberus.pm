@@ -243,23 +243,10 @@ sub services_available {
         $t += ONE_DAY;
     }
 
-    my @sv = ();
-    push @sv, { 'product_id' => 'Cerberus Home',
-                'product_name' => 'LLU Up to 8Mb ADSL2+ Home Connection',
-                'max_speed' => $down,
-                'first_date' => $t->ymd };
-
-    push @sv, { 'product_id' => 'Cerberus Standard',
-                'product_name' => 'LLU Premium Up to 24Mb ADSL2+ Standard Connection',
-                'max_speed' => $down,
-                'first_date' => $t->ymd };
-
-    push @sv, { 'product_id' => 'Cerberus Business',
-                'product_name' => 'LLU Premium Up to 24Mb ADSL2+ Business Connection inc 1 Static IP',
-                'max_speed' => $down,
-                'first_date' => $t->ymd };
-
-    return @sv;
+    my %rv = ( qualification => {
+            'first_date' => $t->ymd,
+            '2plus' => $down } );
+    return %rv;    
 }
 
 sub service_view {
