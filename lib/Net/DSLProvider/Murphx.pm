@@ -194,19 +194,26 @@ sub make_request {
 
     $murphx->services_available( cli => "02071112222" );
 
-Returns an array, each element of which is a hash detailing the services
-which are available on the given telephone line (cli) or postcode.
+Returns an hash showing the available services and line qualifications
+as follows:
 
-Parameters:
-
-    (cli|postcode) - Required
-
-Output
-
-    { product_id,
-      first_date,
-      max_speed,
-      product_name }
+  ( qualification => {
+        classic => '2048000',
+        max => '4096000',
+        2plus => '5120000',
+        fttc => {
+            'up' => '6348800',
+            'down' => '27750400'
+        },
+        'first_date' => '2011-03-01'
+    },
+    product_id => {
+        'first_date' => '2011-03-01',
+        'max_speed' => '4096000',
+        'product_name' => 'DSL Product Name'
+    },
+    ...
+  )
 
 =cut
 
@@ -224,37 +231,36 @@ sub services_available {
         $crd{$pid} = $a->{a}->{'first_date_text'}->{content};
     }
 
-    my @rv = ();
-    if ( $args{'qualification'} ) {
-        my $result = {};
-        my $a = $response->{block}->{availability}->{block};
-        foreach (qw/classic max 2plus fttc/) {
-            my $q = $a->{$_.'_qualification'};
-            if ( $_ ne 'fttc' ) {
-                $result->{$_}->{'down_speed'} = $q->{a}->{'likely_max_speed'}->{content};
-                if ( $_ eq '2plus' && $q->{block}->{'name'} eq 'annex-m' ) {
-                    $result->{'2plus'}->{'annexm'}->{'up'} = $q->{block}->{a}->{'likely_max_speed_up'}->{content};
-                    $result->{'2plus'}->{'annexm'}->{'down'} = $q->{block}->{a}->{'likely_max_speed_down'}->{content};
-                }
+    my %rv = ();
+
+    my $a = $response->{block}->{availability}->{block};
+    foreach (qw/classic max 2plus fttc/) {
+        my $q = $a->{$_.'_qualification'};
+        if ( $_ ne 'fttc' ) {
+            $rv{qualification}->{$_} = $q->{a}->{'likely_max_speed'}->{content};
+            if ( $_ eq '2plus' && $q->{block}->{'name'} eq 'annex-m' ) {
+                $rv{qualification}->{$_.'_m_up'} = $q->{block}->{a}->{'likely_max_speed_up'}->{content};
+                $rv{qualification}->{$_.'_m_down'} = $q->{block}->{a}->{'likely_max_speed_down'}->{content};
             }
-            else {
-                $result->{$_}->{'down_speed'} = $q->{a}->{'likely_max_speed_down'}->{content};
-                $result->{$_}->{'up_speed'} = $q->{a}->{'likely_max_speed_up'}->{content};
-            }
-        $result->{$_}->{first_date} = $crd{1317}; # ADSL MAX Classic first available CRD
         }
-        return if ! $result->{classic}->{down_speed} > 0;
-        push @rv, $result;
+        else {
+            $rv{qualification}->{$_}->{'down'} = $q->{a}->{'likely_max_speed_down'}->{content};
+            $rv{qualification}->{$_}->{'up'} = $q->{a}->{'likely_max_speed_up'}->{content};
+        }
     }
+    return if ! $rv{qualification}->{classic} > 0; # There is no data to report!
+
+    $rv{qualification}->{first_date} = $crd{1317}; # ADSL MAX Classic first available CRD
+
+    # Now return the list of actual services available
     while ( my $a = pop @{$response->{block}->{products}->{block}} ) {
-        push @rv,
-            { product_id   => $a->{a}->{'product_id'}->{content},
+        $rv{$a->{a}->{'product_id'}->{content}} = {
               first_date   => $crd{$a->{a}->{'product_id'}->{content}},
               product_name => $a->{a}->{'product_name'}->{content},
               max_speed => $a->{a}->{'service_speed'}->{content},
             };
     }
-    return @rv;
+    return %rv;
 }
 
 =head2 modify
