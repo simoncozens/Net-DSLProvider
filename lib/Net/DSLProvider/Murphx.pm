@@ -242,6 +242,7 @@ sub services_available {
                 $rv{qualification}->{$_.'_m_up'} = $q->{block}->{a}->{'likely_max_speed_up'}->{content};
                 $rv{qualification}->{$_.'_m_down'} = $q->{block}->{a}->{'likely_max_speed_down'}->{content};
             }
+            $rv{qualification}->{top} = $rv{qualification}->{$_};
         }
         else {
             $rv{qualification}->{$_}->{'down'} = $q->{a}->{'likely_max_speed_down'}->{content};
