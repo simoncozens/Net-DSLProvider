@@ -1483,12 +1483,24 @@ sub case_search {
     my $response = $self->make_request("GetNotes", $data);
 
     my @c = ();
-    for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
+    my $date_format = "%Y-%m-%d %H:%M:%S";
+    $date_format = $args{dateformat} if $args{dateformat};
+    if ( ref $response->{Response}->{OperationResponse}->{Notes}->{Note} eq 'ARRAY' ) {
+        for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
+            my %n = ();
+    
+            $c->{TimeStamp} =~ /(.*) \+0\d00/;
+            my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
+            $n{description} = $c->{Text};
+            $n{engineer} = 'Enta Staff';
+            $n{engineer} = $c->{User} if $c->{User} =~ /\@/;
+            $n{logged} = $t->strftime($date_format);
+            push @c, \%n;
+        }
+    }
+    else {
         my %n = ();
-
-        my $date_format = "%Y-%m-%d %H:%M:%S";
-        $date_format = $args{dateformat} if $args{dateformat};
-
+        my $c = $response->{Response}->{OperationResponse}->{Notes}->{Note};
         $c->{TimeStamp} =~ /(.*) \+0\d00/;
         my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
         $n{description} = $c->{Text};
