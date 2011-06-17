@@ -56,6 +56,7 @@ my %formats = (
         "StartDateTime" => "startdatetime", "EndDateTime" => "enddatetime" },
     UsageHistoryDetail => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
+    ADSLTopup => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     GetMaxReports => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     CreateADSLOrder => { 
         ADSLAccount => {
@@ -1365,6 +1366,57 @@ sub usage_history_detail {
         }
     }
     return @usage;
+}
+
+=head2 allowance
+
+    $enta->allowance( "service-id" => "ADSL12345" );
+
+Returns details of the customers bandwidth usage allowance including
+overall allowance and any overusage (topup or payg) allowances on the 
+account.
+
+=cut
+
+sub allowance {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, ("service-id|telephone|ref|username");
+    $data = $self->serviceid(\%args);
+    my $response = $self->make_request("ADSLTopup", $data );
+
+    my $a = $response->{Response}->{OperationResponse}->{allowance};
+    my $p = $response->{Response}->{OperationResponse}->{payg};
+    my $l = $response->{Response}->{OperationResponse}->{limited};
+    my $t = $response->{Response}->{OperationResponse}->{topups};
+    my $total = $response->{Response}->{OperationResponse}->{total};
+
+    my %allowance = ();
+    for my $part (qw/allowance payg limited/) {
+        my $x = $response->{Response}->{OperationResponse}->{$part};
+        if ( $x->{size} ) {
+            my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
+            my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
+            $allowance->{$part} = {
+                defined $start ? (start => $start->ymd) : (),
+                defined $end ? (end => $end->ymd) : (),
+                size => $x->{$part}->{size},
+                remaining => $x->{$part}->{remaining}
+            };
+        }
+    }
+    if ( ref $t eq 'ARRAY' ) {
+        for my $x (pop @{$t}) {
+            my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
+            my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
+            push @{$allowance->{topups}}, {
+                defined $start ? (start => $start->ymd) : (),
+                defined $end ? (end => $end->ymd) : (),
+                size => $x->{$part}->{size},
+                remaining => $x->{$part}->{remaining}
+            };
+        }
+    }
+    return %allowance;
 }
 
 =head2 session_log
