@@ -357,10 +357,12 @@ sub services_available {
             up => $2 * 1024*1024
         };
     }
-    if ( $details{FullMsg} =~ /Your cabinet is planned to have WBC FTTC by (.*)\./s ) {
+    if ( $details{FullMsg} =~ /Your cabinet is planned to have WBC FTTC by (.*)(\d{4})\./s ) {
         my $planned = $1;
+        my $year = $2;
         my $nth = '(st|nd|rd|th)';
-        $planned =~ s/(\d+)$nth /$1/;
+        $planned =~ s/(\d+)$nth /$1 /;
+        $planned = $planned . $year;
         my $date = Time::Piece->strptime($planned, "%d %b %Y");
         $rv{qualification}->{fttc}->{date} = $date->ymd;
     }
