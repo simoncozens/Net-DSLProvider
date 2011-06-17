@@ -351,11 +351,18 @@ sub services_available {
         $top = $rv{qualification}->{'2plus'};
     }
 
-    if ( $details{FullMsg} =~ /WBC FTTC Broadband where consumers have received downstream line speed of (.*)\.\dMbps and upstream line speed of (.*)\.\dMbps/g ) {
+    if ( $details{FullMsg} =~ /WBC FTTC Broadband where consumers have received downstream line speed of (.*)Mbps and upstream line speed of (.*)Mbps/g ) {
         $rv{qualification}->{fttc} = {
             down => $1 * 1024*1024,
             up => $2 * 1024*1024
         };
+    }
+    if ( $details{FullMsg} =~ /Your cabinet is planned to have WBC FTTC by (.*)\./s ) {
+        my $planned = $1;
+        my $nth = '(st|nd|rd|th)';
+        $planned =~ s/(\d+)$nth /$1/;
+        my $date = Time::Piece->strptime($planned, "%d %b %Y");
+        $rv{qualification}->{fttc}->{date} = $date->ymd;
     }
 
     $rv{qualification}->{'first_date'} = $t->ymd;
@@ -1380,8 +1387,8 @@ account.
 
 sub allowance {
     my ($self, %args) = @_;
-    $self->_check_params(\%args, ("service-id|telephone|ref|username");
-    $data = $self->serviceid(\%args);
+    $self->_check_params(\%args, ("service-id|telephone|ref|username") );
+    my $data = $self->serviceid(\%args);
     my $response = $self->make_request("ADSLTopup", $data );
 
     my $a = $response->{Response}->{OperationResponse}->{allowance};
@@ -1396,7 +1403,7 @@ sub allowance {
         if ( $x->{size} ) {
             my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
             my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
-            $allowance->{$part} = {
+            $allowance{$part} = {
                 defined $start ? (start => $start->ymd) : (),
                 defined $end ? (end => $end->ymd) : (),
                 size => $x->{$part}->{size},
@@ -1408,11 +1415,11 @@ sub allowance {
         for my $x (pop @{$t}) {
             my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
             my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
-            push @{$allowance->{topups}}, {
+            push @{$allowance{topups}}, {
                 defined $start ? (start => $start->ymd) : (),
                 defined $end ? (end => $end->ymd) : (),
-                size => $x->{$part}->{size},
-                remaining => $x->{$part}->{remaining}
+                size => $x->{size},
+                remaining => $x->{remaining}
             };
         }
     }
