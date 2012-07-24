@@ -100,6 +100,7 @@ $sigs{change_password} = [qw/ref|telephone|username|service-id password/];
 =head1 AUTHOR
 
 Simon Cozens, C<< <simon at simon-cozens.org> >>
+Jason Clifford C<< <jason at ukfsn.org> >>
 
 =head1 BUGS
 
@@ -145,7 +146,7 @@ and other Internet services, try UKFSN.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 Simon Cozens.
+Copyright 2009-2012 Simon Cozens & Jason Clifford
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

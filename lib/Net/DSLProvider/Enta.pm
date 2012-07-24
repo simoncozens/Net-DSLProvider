@@ -56,7 +56,7 @@ my %formats = (
         "StartDateTime" => "startdatetime", "EndDateTime" => "enddatetime" },
     UsageHistoryDetail => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
         "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
-    ADSLTopup => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
+    ADSLTopup => { "username" => "text", "ref" => "text", "telephone" => "phone" },
     GetMaxReports => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
     CreateADSLOrder => { 
         ADSLAccount => {
@@ -76,7 +76,7 @@ my %formats = (
             "BaseDomain" => "realm", "ISDN" => "isdn",
             "InitialCareLevelFee" => "iclfee", 
             "OngoingCareLevelFee" => "oclfee", "TagOnTheLine" => 'totl',
-            "MaxPAYGAmount" => "payg-limit" 
+            "MaxPAYGAmount" => "payg-limit", "AssignIPV6" => "ipv6"
         },
         CustomerRecord => {
             "cCustomerID" => "customer-id", "cTitle" => "ctitle",
@@ -117,6 +117,10 @@ my %formats = (
 
 sub request_xml {
     my ($self, $method, $args) = @_;
+
+    if ( $args->{cli} && ( ! $args->{Telephone} ) ) {
+        $args->{Telephone} = $args->{cli};
+    }
 
     my $live = "Test";
     $live = "Live" unless $self->testing;
@@ -255,7 +259,8 @@ sub convert_input {
 
     my $data = {};
 
-    $args->{ref} = delete $args->{"service-id"} if $args->{"service-id"};
+    $args->{'ref'} = delete $args->{"service-id"} if $args->{"service-id"};
+    $args->{telephone} = $args->{cli} if ((!$args->{telephone}) && $args->{cli});
 
     my $recurse = undef;
     $recurse = sub {
@@ -756,6 +761,32 @@ sub getbtfeed {
     return @records;
 }
 
+=head2 update_contact
+
+    $enta->update_contact( "service-id" => "ADSL12345", 
+                            email => 'me@example.com',
+                            telday => '02070020011',
+                            televe => '02080020011' );
+
+Updates the given contact details. Returns true if updated.
+
+You can use this to change the email address, daytime telephone number
+and evening telephone number of the contact for the given service.
+
+=cut
+
+sub update_contact {
+    my ( $self, %args) = @_;
+    $self->_check_params(\%args);
+
+    my $data = $self->serviceid(\%args);
+    for (qw/Email TelDay TelEve/) {
+        $data->{$_} = $args{lc $_} if $args{lc $_};
+    }
+
+    my $response = $self->make_request("UpdateADSLContact", $data);
+    return 1;
+}
 
 =head2 cease
 
@@ -781,10 +812,9 @@ sub cease {
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $data->{"ceaseDate"} = $d->dmy('/');
     
-    my $response = $self->make_request("CeaseADSLOrder", $data); 
+    my $response = $self->make_request("CeaseADSLOrder", $data);
 
-    die "Cease order not accepted by Enta" 
-        unless $response->{Response}->{Type} eq 'Accept';
+    die "Cease order not accepted by Enta" unless $response->{Response}->{Type} eq 'Accept';
 
     return $response->{Response}->{OperationResponse}->{OurRef};
 }
@@ -1390,42 +1420,14 @@ account.
 sub allowance {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ("service-id|telephone|ref|username") );
-    my $data = $self->serviceid(\%args);
+    my $data = undef;
+    $args{'ref'} = $args{"service-id"} if $args{"service-id"};
+    for (qw/telephone ref username/) {
+        $data->{$_} = $args{$_} if $args{$_};
+    }
     my $response = $self->make_request("ADSLTopup", $data );
 
-    my $a = $response->{Response}->{OperationResponse}->{allowance};
-    my $p = $response->{Response}->{OperationResponse}->{payg};
-    my $l = $response->{Response}->{OperationResponse}->{limited};
-    my $t = $response->{Response}->{OperationResponse}->{topups};
-    my $total = $response->{Response}->{OperationResponse}->{total};
-
-    my %allowance = ();
-    for my $part (qw/allowance payg limited/) {
-        my $x = $response->{Response}->{OperationResponse}->{$part};
-        if ( $x->{size} ) {
-            my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
-            my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
-            $allowance{$part} = {
-                defined $start ? (start => $start->ymd) : (),
-                defined $end ? (end => $end->ymd) : (),
-                size => $x->{$part}->{size},
-                remaining => $x->{$part}->{remaining}
-            };
-        }
-    }
-    if ( ref $t eq 'ARRAY' ) {
-        for my $x (pop @{$t}) {
-            my $start = Time::Piece->strptime($x->{created}, "%d/%m/%Y") if $x->{created};
-            my $end = Time::Piece->strptime($x->{expires}, "%d/%m/%Y") if $x->{expires};
-            push @{$allowance{topups}}, {
-                defined $start ? (start => $start->ymd) : (),
-                defined $end ? (end => $end->ymd) : (),
-                size => $x->{size},
-                remaining => $x->{remaining}
-            };
-        }
-    }
-    return %allowance;
+    return %{$response->{Response}->{OperationResponse}};
 }
 
 =head2 session_log
