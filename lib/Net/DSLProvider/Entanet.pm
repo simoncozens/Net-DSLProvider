@@ -181,22 +181,21 @@ my %formats = (
         }
     }
 );
-    
-
-# XXX
-
 
 sub request_xml {
     my ($self, $method, $args) = @_;
 
-    if ( $args->{cli} && ( ! $args->{Telephone} ) ) {
-        $args->{Telephone} = $args->{cli};
-    }
-
     my $live = "Test";
     $live = "Live" unless $self->testing;
 
-    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n<ResponseBlock Type="$live">\n|;
+    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n
+    <ResponseBlock Type="$live">\n
+    <Response Type="$method">\n
+    <OperationResponse>|;
+
+    # XXX Waiting for confirmation from Enta that they will make API
+    # XXX consistent with regard to XML structure!
+
     if ( $enta_xml_methods{$method} ) {
         if ( $method eq 'CeaseADSLOrder' ) {
             $xml .= qq|<Response Type="ADSLCease">\n<OperationResponse">\n|;
@@ -255,7 +254,8 @@ sub make_request {
     my $url = ENDPOINT . "xml/$method" . '.php';
     $url = ENDPOINT . "xml-beta/$method" . '.php' if $method eq "UsageHistory";
     $url = ENDPOINT . "xml/AdslProductChange" . '.php' if $method eq "ProductChange";
-    if ( $enta_xml_methods{$method} ) {     
+
+    if ( $requesttype{$method} eq 'post' ) {
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
 
