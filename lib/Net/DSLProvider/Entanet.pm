@@ -20,11 +20,6 @@ use Date::Holidays::EnglandWales;
 # via POST rather than simply using GET with the parameters and the fields 
 # in the XML are case sensitive while they are not when using GET
 
-my %entatype = ( "CreateADSLOrder" => "ADSLOrder",
-    "ModifyLineFeatures" => "ModifyLineFeatures",
-    "UpdateADSLContact" => "UpdateADSLContact",
-    "ProductChange" => "ProductChange" );
-
 my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
     RequestAppointmentSlot => "post", ADSLChecker => "get", 
     GetBlocked => "get", ModifyLineFeatures => "post", GetNotes => "get",
@@ -33,8 +28,11 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
     GetAdslInstall => "get", PendingOrders => "get", GetBTFeed => "get",
     PSTNPendingOrders => "get", LastRadiusLog => "get",
     ConnectionHistory => "get", GetInterleaving => "get",
-    GetOpenADSLFaults => "get", RequestMAC => "get", 
-    UsageHistory => "get", GetMaxReports => "get", 
+    GetOpenADSLFaults => "get", RequestMAC => "get", ADSLTopup => "get",
+    UsageHistory => "get", GetMaxReports => "get", GetHeavyUsers => "get",
+    UpdateADSLPrice => "post", UpdateADSLContact => "post", 
+    GetADSLUsage => "get", CreateLLUOrder => "post",
+    CreateADSLOrder => "post"
     );
 
 my %formats = (
@@ -93,73 +91,99 @@ my %formats = (
     UsageHistoryDetail => { Username => 1, Ref => 1, Telephone => 1,
         "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
     GetMaxReports => { Username => 1, Ref => 1, Telephone => 1 },
-
-
-
-
-
-# XXX
-    ProductChange => { 
-        "ProductChange" => {
-            "Username" => "username", "Ref" => "ref", "Telephone" => "telephone",
-            "NewProduct" => {
-                "Family" => "family", "Cap" => "cap", "Speed" => "speed",
-            },
-            "Schedule" => "schedule",
-        },
-    },
-    ListConnections => { "liveorceased" => "text", "fields" => "text" },
-    CheckUsernameAvailable => { "Username" => "username" },
-    GetOpenADSLFaults => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
-    RequestMAC => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
-    ADSLTopup => { "username" => "text", "ref" => "text", "telephone" => "phone" },
-    GetMaxReports => { "Username" => "text", "Ref" => "text", "Telephone" => "phone" },
-    CreateADSLOrder => { 
-        ADSLAccount => {
-            "YourRef" => "client-ref", "Product" => "prod-id", "MAC" => "mac",
-            "Title" => "title", "FirstName" => "forename", 
-            "Surname" => "surname", "CompanyName" => "company",
-            "Building" => "building", "Street" => "street", "Town" => "city",
-            "County" => "county", "Postcode" => "postcode", 
-            "TelephoneDay" => "telephone", "TelephoneEvening" => "telephone",
-            "Fax" => "fax", "Email" => "email", "Telephone" => "cli",
-            "ProvisionDate" =>"crd", "NAT" => "allocation-size", 
-            "Username" => "username", "Password" => "password",
-            "LineSpeed" => "linespeed", "OveruseMethod" => "topup",
-            "ISPName" => "losing-isp", "CareLevel" => "care-level",
-            "Interleave" => "max-interleaving", "ForceLowerSpeed" => "classic",
-            "BTProductSpeed" => "classic-speed", "Realm" => "realm",
-            "BaseDomain" => "realm", "ISDN" => "isdn",
-            "InitialCareLevelFee" => "iclfee", 
-            "OngoingCareLevelFee" => "oclfee", "TagOnTheLine" => 'totl',
-            "MaxPAYGAmount" => "payg-limit", "AssignIPV6" => "ipv6"
-        },
-        CustomerRecord => {
-            "cCustomerID" => "customer-id", "cTitle" => "ctitle",
-            "cFirstName" => "cforename", "cSurname" => "csurname",
-            "cCompanyName" => "ccompany", "cBuilding" => "cbuilding",
-            "cStreet" => "cstreet", "cTown" => "ctown", 
-            "cCounty" => "ccounty", "cPostcode" => "cpostcode",
-            "cTelephoneDay" => "ctelephone", 
-            "cTelephoneEvening" => "ctelephone",
-            "cFax" => "cfax", "cEmail" => "cemail"
-        },
-        BillingAccount => {
-            "PurchaseOrderNumber" => "client-ref", 
-            "BillingPeriod" => "billing-period", 
-            "ContractTerm" => "contract-term",
-            "InitialPaymentMethod" => "initial-payment",
-            "OngoingPaymentMethod" => "ongoing-payment",
-            "PaymentMethod" => "payment-method" 
+# ADSL TopUp
+    ADSLTopup => { Username => 1, Ref => 1, Telephone => 1 },
+# Heavy User Tool
+    GetHeavyUsers => { Username => 1, Ref => 1, Telephone => 1 },
+# Update ADSL Price
+    UpdateADSLPrice => { ADSLAccount => {
+        Username => 1, Ref => 1, Telephone => 1, 
+        PriceDetails => {
+            PeriodFee => 1, EnhancedCareFee => 1, 
+            ElevatedBestEffortsFee => 1 }
         }
     },
-    CeaseADSLOrder => { "Username" => "username", "Ref" => "ref", "Telephone" => "telephone", 
-        ceaseDate => 'ceasedate' },
-    ChangeInterleave => { "Username" => "text", "Ref" => "text", "Telephone" => "phone",
-        Interleave => "text" },
-    UpdateADSLContact => { "Ref" => "ref", "Username" => "username", Telephone => "telephone",
-        ContactDetails => { Email => "email", TelDay => "phone", TelEve => "phone" } 
-    } );
+# Update ADSL Contact Details
+    UpdateADSLContact => { ADSLAccount => {
+        Username => 1, Ref => 1, Telephone => 1, ContactDetails => {
+            Email => 1, TelDay => 1, TelEve => 1 }
+        }
+    },
+# Usage Information    
+    GetADSLUsage => { FromDate => 1, ToDate => 1, MinUsage => 1, 
+        Product => 1, ReturnType => 1
+    },
+# LLU Create Order
+    CreateLLUOrder => {
+        ADSLAccount => {
+            Product => 1, Title => 1, FirstName => 1, Surname => 1, 
+            CompanyName => 1, Building => 1, Street => 1, Town => 1,
+            County => 1, Postcode => 1, TelephoneDay => 1, 
+            TelephoneEvening => 1, Fax => 1, Email => 1, Telephone => 1, 
+            ProvisionDate => 1, MAC => 1, 
+            Charges => {
+                Initial => 1, Recurring => 1
+            },
+            RadiusDetails => {
+                Username => 1, Password => 1, Realm => BaseDomain => 1,
+                IPAddresses => {
+                    IPv4 => { NumberRequired => 1 },
+                    IPv6 => { Enabled => 1 }
+                }
+            }
+        }
+        BillingAccount => {
+            ContractTerm => 1, BillingPeriod => 1,
+            InitialPaymentMethod => 1, OngoingPaymentMethod => 1, 
+            PaymentMethod => 1, PurchaseOrderNumber => 1
+        }.
+        CustomerRecord => {
+            cCustomerID => 1, cTitle => 1, cFirstName => 1, 
+            cSurname => 1, cCompanyName => 1, cBuilding => 1, 
+            cStreet => 1, cTown => 1, cCounty => 1, cPostcode => 1, 
+            cTelephoneDay => 1, cTelephoneEvening => 1, cFax => 1,
+            cEmail => 1
+        }
+    },
+# Create ADSL / FTTC Order (not LLU)
+    CreateADSLOrder => {
+        ADSLAccount => {
+            Product => 1, ProductInitialFee => 1, 
+            ProductOngoingFee => 1, Title => 1, FirstName => 1,
+            Surname => 1, CompanyName => 1, Building => 1, Street => 1,
+            Town => 1, County => 1, Postcode => 1, OnsiteHazards => 1, 
+            TelephoneDay => 1, TelephoneEvening => 1, Fax => 1, 
+            Email => 1, Telephone => 1, ProvisionDate => 1, NAT => 1, 
+            InitialNoNATFee => 1, NoNatReason => 1, Username => 1,
+            Password => 1, ISPName => 1, CareLevel => 1, 
+            InitialCareLevelFee => 1, OngoingCareLevelFee => 1, 
+            LineSpeed => 1, OveruseMethod => 1, MaxPAYGAmount => 1,
+            MAC => 1, Realm => 1, BaseDomain => 1, StabilityOption => 1,
+            Interleave => 1, BestEfforts => 1, BestEffortsInitialFee => 1,
+            BestEffortsOngoingFee => 1, InstallFee => 1, Upstream => 1,
+            UpstreamInitialFee => 1, UpstreamOngoingFee => 1,
+            AssignIPV6 => 1
+        },
+        BillingAccount => {
+            PurchaseOrderNumber => 1, BillingPeriod => 1, 
+            ContractTerm => 1, InitialPaymentMethod => 1,
+            OngoingPaymentMethod => 1, PaymentMethod => 1
+        },
+        CustomerRecord => {
+            cCustomerID => 1, cTitle => 1, cFirstName => 1,
+            cSurname => 1, cCompanyName => 1, cBuilding => 1,
+            cStreet => 1, cTown => 1, cCounty => 1, cPostcode => 1,
+            cTelephoneDay => 1, cTelephoneEvening => 1, cFax => 1,
+            cEmail => 1
+        },
+        AppointmentDetails => {
+            AppointmentReference => 1
+        }
+    }
+);
+    
+
+# XXX
 
 
 sub request_xml {
