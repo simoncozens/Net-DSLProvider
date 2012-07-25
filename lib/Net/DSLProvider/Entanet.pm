@@ -1201,90 +1201,32 @@ sub order {
 
 =head2 terms_and_conditions
 
-Returns the terms-and-conditions to be presented to the user for signup
-of a broadband product.
+    Returns the URI where the T&C for Entanet services is located.
 
 =cut
 
 sub terms_and_conditions {
-    return "XXX Get terms and conditions dynamically, or just put them here";
+    return "http://www.enta.net/downloads/entanet_tandc.pdf";
 }
 
 =head2 product_change
 
-    $enta->product_change( "username" => "myusername", "family" => "Family",
-        "cap" => "30", "speed" => "8000" );
-
-Place an order to change the specified service to the given new product.
-
-Note that you can only use username or telephone to identify the service. 
-You cannot use ref or service-id
+    Not implemented in Enta API Yet
 
 =cut
 
 sub product_change {
-    my ($self, %args) = @_;
-    $self->_check_params(\%args, ("ref|username|telephone|service-id", 
-            "family", "cap", "speed"));
-
-    if ( $args{"ref"} || $args{"service-id"}) {
-        my %adsl = $self->adslaccount(%args);
-        $args{"username"} = $adsl{adslaccount}->{username};
-        delete $args{"ref"} if $args{"ref"};
-    }
-
-    $args{schedule} = "FirstAvailableDate";
-
-    my $data = $self->convert_input("ProductChange", \%args);
-    my $response = $self->make_request("ProductChange", $data);
-
-    return $response->{Response}->{OperationResponse}->{ProductChange}->{Results};
+    return;
 }
 
 =head2 regrade
 
-    $enta->regrade( "service-id" => "ADSL12345",
-                    "prod-id" => "FAM30" );
-
-Places an order to regrade the specified service to the specified prod-id.
-
-Required parameters:
-
-    prod-id : New Enta product ID
-    service-id : you must provide one of service-id, ref, username or telephone
+    Not Implemented in Enta API Yet
 
 =cut
 
 sub regrade {
-    my ($self, %args) = @_;
-    $self->_check_params(\%args);
-
-    my %adsl = $self->adslaccount(%args);
-    my %data = ( "username" => $adsl{adslaccount}->{username} );
-
-    my $speed = $adsl{adslaccount}->{actualbtproduct};
-
-    if ( ( $speed =~ /Premium/ && $args{"prod-id"} !~ /BUS/ ) ||
-         ( $speed !~ /Premium/ && $args{"prod-id"} =~ /BUS/ ) ) {
-        die "To switch between a Family and Business product requires a manual request to Enta";
-    }
-
-    $speed = "24000" if $speed eq 'WBC End User Access (EUA)';
-    $speed = "8000" if $speed =~ /BT IPStream Max/;
-    $speed = "2000" if $speed =~ /BT IPStream .* 2000/;
-    $speed = "1000" if $speed =~ /BT IPStream .* 1000/;
-    $speed = "500" if $speed =~ /BT IPStream .* 500/;
-
-    $data{speed} = $speed;
-
-    if ( $args{"prod-id"} =~ /(\D+)(\d+)/ ) {
-        my $family = "Family";
-        $family = "Business" if $1 eq 'BUS';
-        $data{family} = $family;
-        $data{cap} = $2;
-
-        return $self->product_change(%data);
-    }
+    return;
 }
 
 =head2 usage_summary 
