@@ -501,8 +501,20 @@ sub get_appointments {
     }
 
     my $response = $self->make_request("RequestAppointmentBook", $data);
+    my $token = $response->{Token};
+    my $appts = $self->poll_appointments($token);
+    return $appts if $appts; # XXX Review this - should be an array
+}
 
+sub poll_appointments {
+    my ($self, $token) = @_;
+    return unless $token;
 
+    my $response = $self->make_request("Poll", { Token => $token });
+    if ( $response->{ListOfAppointment}->{Appointment} ) {
+        return $response->{ListOfAppointment}->{Appointment}; # XXX should be array ref
+    }
+    return;
 }
 
 =head2 regrade_options
