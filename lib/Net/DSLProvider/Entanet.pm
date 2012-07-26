@@ -499,24 +499,48 @@ sub get_appointments {
         Date => $args{date}
     }
     foreach (keys %{$args{attributes}}) {
-        $data->{listOfAttributes}->{$_} = $args{attributes}->{$_};
+        $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
+        $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
     }
 
     my $response = $self->make_request("RequestAppointmentBook", $data);
     my $token = $response->{Token};
-    my $appts = $self->poll_appointments($token);
-    return $appts if $appts; # XXX Review this - should be an array
-}
 
-sub poll_appointments {
-    my ($self, $token) = @_;
-    return unless $token;
-
-    my $response = $self->make_request("Poll", { Token => $token });
+    my $appts = $self->make_request("Poll", { Token => $token });
     if ( $response->{ListOfAppointment}->{Appointment} ) {
-        return $response->{ListOfAppointment}->{Appointment}; # XXX should be array ref
+        return $response->{ListOfAppointment}->{Appointment};
     }
     return;
+}
+
+=head2 book_appointment
+
+    $enta->book_appointment($tokenid);
+
+Book a specific appointment slot
+
+=cut
+
+sub book_appointment {
+    my ($self, %args) = @_;
+    return unless $args{date} & $args{timeslot} && $args{cli};
+
+    my $data = {
+        Telephone => $args{cli},
+        Date => $args{date},
+        TimeSlot => $args{timeslot}
+    }
+    foreach (keys %{$args{attributes}}) {
+        $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
+        $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
+    }
+
+    my $response = $self->make_request("RequestAppointmentSlot", $data);
+    my $token = $response->{Token};
+
+    my $appt = $self->make_request("Poll", { Token => $token });
+    return unless $appt->{Date};
+    return $appt;
 }
 
 =head2 regrade_options
