@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use HTML::Entities qw(encode_entities_numeric);
 use base 'Net::DSLProvider';
-use constant ENDPOINT => "https://api.enta.net/xml";
+use constant ENDPOINT => "https://api.enta.net/xml/";
 use constant BOUNDARY => "abc123xyz890";
 use constant REALM => "Entanet Partner Logon";
 use LWP;
@@ -66,20 +66,18 @@ my %formats = (
         }
     },
 # Get Rate Limited Connections
-    GetRateLimited => { "Username" => 1, "Ref" => 1, Telephone => 1 },
+    GetRateLimited => { Username => 1, Ref => 1, Telephone => 1 },
 # Reporting Tools
-    AdslAccount => { "Username" => "username", "Ref" => "ref", 
-        "Telephone" => "telephone"
-    },
+    AdslAccount => { Username => 1, Ref => 1, Telephone => 1 },
     ListConnections => { liveorceased => 1, fields => 1 },
     CheckUsernameAvailable => { username => 1 },
-    GetBTFault => { "day" => "text", "start" => "text", "end" => "text" },
-    GetAdslInstall => { "Username" => "text", "Ref" => "text" },
-    GetBTFeed => { "Days" => "counting" },
-    GetNotes => => { "Username" => "text", "Ref" => "text" },
+    GetBTFault => { day => 1, start => 1, end => 1 },
+    GetAdslInstall => { Username => 1, Ref => 1 },
+    GetBTFeed => { Days => 1 },
+    GetNotes => => { Username => 1, Ref => 1 },
     PendingOrders => { },
     PSTNPendingOrders => { },
-    LastRadiusLog => { "Username" => "text", "Ref" => "text" },
+    LastRadiusLog => { Username => 1, Ref => 1 },
     ConnectionHistory => { Username => 1, Ref => 1, Telephone => 1,
         Days => 1 },
     GetInterleaving => { Username => 1, Ref => 1, Telephone => 1 },
@@ -251,9 +249,10 @@ sub make_request {
     my $agent = __PACKAGE__ . '/0.1 ';
     $ua->agent($agent . $ua->agent);
 
-    my $url = ENDPOINT . "xml/$method" . '.php';
-    $url = ENDPOINT . "xml-beta/$method" . '.php' if $method eq "UsageHistory";
-    $url = ENDPOINT . "xml/AdslProductChange" . '.php' if $method eq "ProductChange";
+    my $version = 'stable';
+    my $version = @{[$self->version]} if @{[$self->version]};
+
+    my $url = ENDPOINT . "$version/$method" . '.php';
 
     if ( $requesttype{$method} eq 'post' ) {
         push @{$ua->requests_redirectable}, 'POST';
@@ -279,17 +278,17 @@ sub make_request {
     $req->authorization_basic(@{[$self->user]}, @{[$self->pass]});
     $req->header( 'MIME_Version' => '1.0', 'Accept' => 'text/xml' );
 
-    if ( $enta_xml_methods{$method}) {
+    if ( $requesttype{$method} eq 'post' ) {
         $req->header('Content-type' => 'multipart/form-data; type="text/xml"; boundary=' . BOUNDARY);
         $req->header('Content-length' => length $body);
         $req->content($body);
     }
 
-    if ( $self->debug ) { use Data::Dumper; warn Dumper $req; }
+    $self->debug_dump($req) if $self->debug;
 
     $res = $ua->request($req);
     
-    if ( $self->debug ) { warn $res->content; }
+    $self->debug_dump($res->content) if $self->debug;
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
 
@@ -319,9 +318,14 @@ sub make_request {
 
     $recurse->($resp_o);
 
-    if ( $self->debug ) { use Data::Dumper; warn Dumper $resp_o; }
-    
-    return $resp_o;
+    $self->debug_dump($resp_o) if $self->debug;
+
+    if ( $resp_o->{Response}->{OperationResponse} ) {
+        return $resp_o->{Response}->{OperationResponse};
+    }
+    else {
+        return $resp_o->{Response};
+    }
 }
 
 sub convert_input {
@@ -463,6 +467,44 @@ sub services_available {
     return %rv;
 }
 
+=head2 get_appointments
+    $enta->get_appointments( cli => "02070010001",
+        date => "2012-01-01",
+        attributes => { ExtensionKit => 1 }
+    );
+
+Returns an array listing available appointment slots or, if it is not 
+possible to obtain appointments, returns a token to poll for the 
+list at a later point.
+
+Required parameters:
+
+    cli         Telephone Number
+    date        Earliest date for appointments
+
+Optional parameters:
+
+    attributes  Hash ref of required extensions (see Enta docs)
+
+=cut
+
+sub get_appointments {
+    my ($self, %args) = @_;
+    return unless $args{cli} && $args{date};
+
+    my $data = {
+        Telephone => $args{cli},
+        Date => $args{date}
+    }
+    foreach (keys %{$args{attributes}}) {
+        $data->{listOfAttributes}->{$_} = $args{attributes}->{$_};
+    }
+
+    my $response = $self->make_request("RequestAppointmentBook", $data);
+
+
+}
+
 =head2 regrade_options
 
     $enta->regrade_options( "service-id" => "ADSL12345" );
@@ -501,7 +543,6 @@ sub adslchecker {
         "PhoneNo" => $args{cli},
         "PostCode" => $args{postcode},
         "MACcode" => $args{mac},
-        "Version" => 4
         } ;
 
     my $response = $self->make_request("ADSLChecker", $data);
@@ -1615,6 +1656,11 @@ sub _get_ref_from_telephone {
 
     my %adsl = $self->adslaccount( "telephone" => $cli );
     return $adsl{adslaccount}->{ourref};
+}
+
+sub debug_dump {
+    use Data::Dumper;
+    warn Dumper \$_[1];
 }
 
 1;
