@@ -37,9 +37,11 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
 
 my %formats = (
 # Appointments Methods
-    RequestAppointmentBook => { Date => "dd/mm/yyyy",
-        TelephoneNumber => "phone",
-        listOfAttributes => "text"
+    RequestAppointmentBook => { Date => 1,
+        TelephoneNumber => 1,
+        listOfAttributes => { Attributes => {
+            AttributeName => 1, AttributeValue => 1 }
+        }
     },
     RequestAppointmentSlot => {
         Date => "dd/mm/yyyy", TimeSlot => "text",
