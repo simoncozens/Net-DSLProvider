@@ -35,6 +35,16 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
     CreateADSLOrder => "post"
     );
 
+
+# Map methods to URI
+my %uri = ( RequestAppointmentBook => "Appointments",
+    RequestAppointmentSlot => "Appointments",
+    Poll => "Appointments", ADSLChecker => "ADSLChecker",
+
+    CreateADSLOrder => "CreateADSLOrder",
+    );
+
+
 my %formats = (
 # Appointments Methods
     RequestAppointmentBook => { Date => 1,
@@ -44,26 +54,26 @@ my %formats = (
         }
     },
     RequestAppointmentSlot => {
-        Date => "dd/mm/yyyy", TimeSlot => "text",
-        TelephoneNumber => "phone", listOfAttributes => "text"
+        Date => 1, TimeSlot => 1,
+        TelephoneNumber => 1, listOfAttributes => 1
     },
-    Poll => { Token => "text" },
+    Poll => { Token => 1 },
 # ADSL Checker Method
-    ADSLChecker => { "PhoneNo" => "phone", "PostCode" => "text",
-        "MACcode" => "text", EUPostCode => "text"
+    ADSLChecker => { PhoneNo => 1, PostCode => 1,
+        MACcode => 1, EUPostCode => 1
     },
 # Get Blocked Connections
-    GetBlocked => { "Username" => "username", 
-        "Ref" => "ref", "Telephone" => "telephone"
+    GetBlocked => { Username => 1, 
+        Ref => 1, Telephone => 1
     },
 # Modify Line Features
-    ModifyLineFeatures => { "ADSLAccount" => {
-        "Ref" => "text", "Username" => "text", "Telephone" => "phone",
-        "LineFeatures" => {
-            "Interleaving" => "text", "StabilityOption" => "text", 
-            "ElevatedBestEfforts" => "yesno", "ElevatedBestEffortsFee" => "text", 
-            "MaintenanceCategory" => "counting", "MaintenanceCategoryFee" => "text",
-            Upstream => "text", UpstreamFee => "text"
+    ModifyLineFeatures => { ADSLAccount => {
+        Ref => 1, Username => 1, Telephone => 1,
+        LineFeatures => {
+            Interleaving => 1, StabilityOption => 1, 
+            ElevatedBestEfforts => 1, ElevatedBestEffortsFee => 1, 
+            MaintenanceCategory => 1, MaintenanceCategoryFee => 1,
+            Upstream => 1, UpstreamFee => 1
             }
         }
     },
@@ -86,10 +96,10 @@ my %formats = (
     GetOpenADSLFaults => { Username => 1, Ref => 1, Telephone => 1 },
     RequestMAC => { Username => 1, Ref => 1, Telephone => 1 },
     UsageHistory => { Username => 1, Ref => 1, Telephone => 1,
-        "StartTimestamp" => "starttimestamp", "EndTimestamp" => "endtimestamp", 
-        "StartDateTime" => "startdatetime", "EndDateTime" => "enddatetime" },
+        StartTimestamp => 1, EndTimestamp => 1, 
+        StartDateTime => 1, EndDateTime => 1 },
     UsageHistoryDetail => { Username => 1, Ref => 1, Telephone => 1,
-        "startday" => "dd/mm/yyyy", "endday" => "dd/mm/yyyy", "day" => "dd/mm/yyyy" },
+        startday => 1, endday => 1, day => 1 },
     GetMaxReports => { Username => 1, Ref => 1, Telephone => 1 },
 # ADSL TopUp
     ADSLTopup => { Username => 1, Ref => 1, Telephone => 1 },
@@ -254,7 +264,9 @@ sub make_request {
     my $version = 'stable';
     my $version = @{[$self->version]} if @{[$self->version]};
 
-    my $url = ENDPOINT . "$version/$method" . '.php';
+    my $uri = $uri{$method};
+
+    my $url = ENDPOINT . "$version/$uri" . '.php';
 
     if ( $requesttype{$method} eq 'post' ) {
         push @{$ua->requests_redirectable}, 'POST';
