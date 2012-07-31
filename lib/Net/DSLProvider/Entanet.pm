@@ -598,15 +598,15 @@ sub adslchecker {
     my $response = $self->make_request("ADSLChecker", $data);
 
     my %results = ();
-    foreach (keys %{$response->{Response}->{OperationResponse}}) {
-        if ( ref $response->{Response}->{OperationResponse}->{$_} eq "HASH" ) {
+    foreach (keys %{$response}) {
+        if ( ref $response->{$_} eq "HASH" ) {
             my $a = $_;
-            foreach (keys %{$response->{Response}->{OperationResponse}->{$a}}) {
-                $results{$a}{$_} = $response->{Response}->{OperationResponse}->{$a}->{$_};
+            foreach (keys %{$response->{$a}}) {
+                $results{$a}{$_} = $response->{$a}->{$_};
             }
         }
         else {
-            $results{$_} = $response->{Response}->{OperationResponse}->{$_};
+            $results{$_} = $response->{$_};
         }
     }
     return %results;
@@ -628,7 +628,7 @@ sub username_available {
     my $response = $self->make_request("CheckUsernameAvailable", 
         { "username" => $username } );
 
-    return undef if $response->{Response}->{OperationResponse}->{Available} eq "false";
+    return undef if $response->{Available} eq "false";
     return 1;
 }
 
@@ -672,8 +672,7 @@ sub interleaving_status {
     my $data = $self->serviceid(\%args);
     my $response = $self->make_request("GetInterleaving", $data);
 
-    return $response->{Response}->{OperationResponse}->{Interleave};
-
+    return $response->{Interleave};
 }
 
 =head2 interleaving
@@ -830,8 +829,8 @@ sub modifylinefeatures {
     my $response = $self->make_request("ModifyLineFeatures", $data);
 
     my %return = ();
-    foreach ( keys %{$response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}} ) {
-        $return{lc $_} = $response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}->{$_}->{NewValue};
+    foreach ( keys %{$response->{ADSLAccount}->{LineFeatures}} ) {
+        $return{lc $_} = $response->{ADSLAccount}->{LineFeatures}->{$_}->{NewValue};
     }
     return \%return;
 }
@@ -914,7 +913,7 @@ sub getbtfeed {
     my $response = $self->make_request("GetBTFeed", { "Days" => $args{days} });
 
     my @records = ();
-    while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
+    while ( my $r = pop @{$response->{Records}->{Record}} ) {
         my %a = ();
         foreach (keys %$r) {
             $a{lc $_} = $r->{$_};
@@ -977,9 +976,9 @@ sub cease {
     
     my $response = $self->make_request("CeaseADSLOrder", $data);
 
-    die "Cease order not accepted by Enta" unless $response->{Response}->{Type} eq 'Accept';
+    die "Cease order not accepted by Enta" unless $response->{Type} eq 'Accept';
 
-    return $response->{Response}->{OperationResponse}->{OurRef};
+    return $response->{OurRef};
 }
 
 =head2 requestmac
@@ -1036,12 +1035,12 @@ sub auth_log {
     my $date_format = "%Y-%m-%d %H:%M:%S";
     $date_format = $args{dateformat} if $args{dateformat};
 
-    my $t = Time::Piece->strptime($response->{Response}->{OperationResponse}->{DateTime}, "%d %b %Y %H:%M:%S");
+    my $t = Time::Piece->strptime($response->{DateTime}, "%d %b %Y %H:%M:%S");
 
     $log{"auth_date"} = $t->strftime($date_format);
-    $log{"username"} = $response->{Response}->{OperationResponse}->{Username};
+    $log{"username"} = $response->{Username};
     $log{"result"} = "Login OK";
-    $log{"ip_address"} = $response->{Response}->{OperationResponse}->{IPAddress};
+    $log{"ip_address"} = $response->{IPAddress};
 
     push @r, \%log;
     return @r;
@@ -1067,7 +1066,7 @@ sub max_reports {
     my @rate = ();
     my @profile = ();
 
-    while ( my $r = shift @{$response->{"Response"}->{"Report"}} ) {
+    while ( my $r = shift @{$response->{"Report"}} ) {
         if ( $r->{"Name"} eq "Line RateChange" ) {
             while (my $rec = shift @{$r->{Record}} ) {
                 my %a = ();
@@ -1146,7 +1145,7 @@ sub getadslinstall {
     $dateformat = $args{dateformat} if $args{dateformat};
 
     my @history = ();
-    while ( my $log = shift @{$response->{Response}->{OperationResponse}->{InstallReturns}->{InstallReturn}} ) {
+    while ( my $log = shift @{$response->{InstallReturns}->{InstallReturn}} ) {
         my %a = ();
         my $d = localtime($log->{DateReceived});
         $a{date} = $d->strftime($dateformat);
@@ -1201,15 +1200,15 @@ sub adslaccount {
     my $response = $self->make_request("AdslAccount", $data );
 
     my %adsl = ();
-    foreach (keys %{$response->{Response}->{OperationResponse}} ) {
-        if ( ref $response->{Response}->{OperationResponse}->{$_} eq 'HASH' ) {
+    foreach (keys %{$response} ) {
+        if ( ref $response->{$_} eq 'HASH' ) {
             my $b = $_;
-            foreach ( keys %{$response->{Response}->{OperationResponse}->{$b}} ) {
-                $adsl{lc $b}{lc $_} = $response->{Response}->{OperationResponse}->{$b}->{$_};
+            foreach ( keys %{$response->{$b}} ) {
+                $adsl{lc $b}{lc $_} = $response->{$b}->{$_};
             }
         }
         else {
-            $adsl{lc $_} = $response->{Response}->{OperationResponse}->{$_};
+            $adsl{lc $_} = $response->{$_};
         }
     }
     $adsl{service_details}->{live} = 'N';
@@ -1285,9 +1284,9 @@ sub order {
 
     my $response = $self->make_request("CreateADSLOrder", $data);
 
-    return ( "order_id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "service_id" => $response->{Response}->{OperationResponse}->{OurRef},
-             "payment_code" => $response->{Response}->{OperationResponse}->{TelephonePaymentCode} );
+    return ( "order_id" => $response->{OurRef},
+             "service_id" => $response->{OurRef},
+             "payment_code" => $response->{TelephonePaymentCode} );
 }
 
 =head2 terms_and_conditions
@@ -1384,8 +1383,8 @@ sub usage_history {
 
     my $response = $self->make_request("UsageHistory", $data);
 
-    my $s = Time::Piece->strptime($response->{Response}->{OperationResponse}->{StartDateTime}, "%d %b %Y %H:%M:%S");
-    my $e = Time::Piece->strptime($response->{Response}->{OperationResponse}->{EndDateTime}, "%d %b %Y %H:%M:%S");
+    my $s = Time::Piece->strptime($response->{StartDateTime}, "%d %b %Y %H:%M:%S");
+    my $e = Time::Piece->strptime($response->{EndDateTime}, "%d %b %Y %H:%M:%S");
 
     my %u = ();
 
@@ -1398,10 +1397,10 @@ sub usage_history {
         $u{"end_date_time"} = $e->ymd.' '.$e->hms;
     }
 
-    $u{peak_download} = $response->{Response}->{OperationResponse}->{PeakDownload};
-    $u{peak_upload} = $response->{Response}->{OperationResponse}->{PeakUpload};
-    $u{download} = $response->{Response}->{OperationResponse}->{Download};
-    $u{upload} = $response->{Response}->{OperationResponse}->{Upload};
+    $u{peak_download} = $response->{PeakDownload};
+    $u{peak_upload} = $response->{PeakUpload};
+    $u{download} = $response->{Download};
+    $u{upload} = $response->{Upload};
 
     return %u;
 }
@@ -1474,7 +1473,7 @@ sub usage_history_detail {
 
     my @usage = ();
     if ( $args{"day"} ) {
-        while (my $r = shift @{$response->{ResponseType}->{Detail}->{Usage}} ) {
+        while (my $r = shift @{$response->{Detail}->{Usage}} ) {
             my %row = ();
             foreach ( keys %{$r} ) {
                 my $key = lc $_;
@@ -1484,8 +1483,8 @@ sub usage_history_detail {
         }
     }
     else {
-        if ( ref $response->{ResponseType}->{Day} eq 'ARRAY' ) {
-            while (my $r = shift @{$response->{ResponseType}->{Day}} ) {
+        if ( ref $response->{Day} eq 'ARRAY' ) {
+            while (my $r = shift @{$response->{Day}} ) {
                 my %row = ();
                 my $d = Time::Piece->strptime($r->{Date}, "%F");
                 $row{'date'} = $d->strftime($date_format);
@@ -1499,12 +1498,12 @@ sub usage_history_detail {
         }
         else {
             my %row = ();
-            my $d = Time::Piece->strptime($response->{ResponseType}->{Day}->{Date}, "%F");
+            my $d = Time::Piece->strptime($response->{Day}->{Date}, "%F");
             $row{'date'} = $d->strftime($date_format);
-            $row{'totalup'} = $response->{ResponseType}->{Day}->{Total}->{Up};
-            $row{'totaldown'} = $response->{ResponseType}->{Day}->{Total}->{Down};
-            $row{'peakup'} = $response->{ResponseType}->{Day}->{Peak}->{Up};
-            $row{'peakdown'} = $response->{ResponseType}->{Day}->{Peak}->{Down};
+            $row{'totalup'} = $response->{Day}->{Total}->{Up};
+            $row{'totaldown'} = $response->{Day}->{Total}->{Down};
+            $row{'peakup'} = $response->{Day}->{Peak}->{Up};
+            $row{'peakdown'} = $response->{Day}->{Peak}->{Down};
 
             push @usage, \%row;
         }
@@ -1532,7 +1531,7 @@ sub allowance {
     }
     my $response = $self->make_request("ADSLTopup", $data );
 
-    return %{$response->{Response}->{OperationResponse}};
+    return %{$response};
 }
 
 =head2 session_log
@@ -1581,8 +1580,8 @@ sub connectionhistory {
     
     my @history = ();
 
-    if ( ref $response->{Response}->{OperationResponse}->{Connection} eq 'ARRAY' ) {
-        while ( my $h = pop @{$response->{Response}->{OperationResponse}->{Connection}} ) {
+    if ( ref $response->{Connection} eq 'ARRAY' ) {
+        while ( my $h = pop @{$response->{Connection}} ) {
             my %a = ();
             my $start = Time::Piece->strptime($h->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
             my $end = Time::Piece->strptime($h->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
@@ -1612,21 +1611,21 @@ sub connectionhistory {
     }
     else {
         my %a = ();
-        my $start = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
-        my $end = Time::Piece->strptime($response->{Response}->{OperationResponse}->{Connection}->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
+        my $start = Time::Piece->strptime($response->{Connection}->{"StartDateTime"}, "%d %b %Y %H:%M:%S");
+        my $end = Time::Piece->strptime($response->{Connection}->{"EndDateTime"}, "%d %b %Y %H:%M:%S");
         $a{"start_time"} = $start->strftime($date_format);
         $a{"stop_time"} = $end->strftime($date_format);
         $a{"duration"} = $end - $start;
-        $a{"username"} = $response->{Response}->{OperationResponse}->{Connection}->{"Username"};
+        $a{"username"} = $response->{Connection}->{"Username"};
 
         my ($download, $upload, $measure) = ();
 
-        ($upload, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Input"};
+        ($upload, $measure) = split $response->{Connection}->{"Input"};
         $a{"upload"} = $upload * 1024*1024*1024 if $measure eq 'GB';
         $a{"upload"} = $upload * 1024*1024 if $measure eq 'MB';
         $a{"upload"} = $upload * 1024 if $measure eq 'KB';
 
-        ($download, $measure) = split $response->{Response}->{OperationResponse}->{Connection}->{"Output"};
+        ($download, $measure) = split $response->{Connection}->{"Output"};
         $a{"download"} = $download * 1024*1024*1024 if $measure eq 'GB';
         $a{"download"} = $download * 1024*1024 if $measure eq 'MB';
         $a{"download"} = $download * 1024 if $measure eq 'KB';
@@ -1653,8 +1652,8 @@ sub case_search {
     my @c = ();
     my $date_format = "%Y-%m-%d %H:%M:%S";
     $date_format = $args{dateformat} if $args{dateformat};
-    if ( ref $response->{Response}->{OperationResponse}->{Notes}->{Note} eq 'ARRAY' ) {
-        for my $c ( @{$response->{Response}->{OperationResponse}->{Notes}->{Note}} ) {
+    if ( ref $response->{Notes}->{Note} eq 'ARRAY' ) {
+        for my $c ( @{$response->{Notes}->{Note}} ) {
             my %n = ();
     
             $c->{TimeStamp} =~ /(.*) \+0\d00/;
@@ -1668,7 +1667,7 @@ sub case_search {
     }
     else {
         my %n = ();
-        my $c = $response->{Response}->{OperationResponse}->{Notes}->{Note};
+        my $c = $response->{Notes}->{Note};
         $c->{TimeStamp} =~ /(.*) \+0\d00/;
         my $t = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
         $n{description} = $c->{Text};
