@@ -15,6 +15,7 @@ use XML::Simple;
 use Time::Piece;
 use Time::Seconds;
 use Date::Holidays::EnglandWales;
+__PACKAGE__->mk_accessors(qw/version/);
 
 # These are methods for which we have to pass Enta a block of XML as a file
 # via POST rather than simply using GET with the parameters and the fields 
@@ -141,7 +142,7 @@ my %formats = (
                     IPv6 => { Enabled => 1 }
                 }
             }
-        }
+        },
         BillingAccount => {
             ContractTerm => 1, BillingPeriod => 1,
             InitialPaymentMethod => 1, OngoingPaymentMethod => 1, 
@@ -206,16 +207,16 @@ sub request_xml {
     # XXX Waiting for confirmation from Enta that they will make API
     # XXX consistent with regard to XML structure!
 
-    if ( $enta_xml_methods{$method} ) {
-        if ( $method eq 'CeaseADSLOrder' ) {
-            $xml .= qq|<Response Type="ADSLCease">\n<OperationResponse">\n|;
-        }
-        else { 
-            $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
-        }
-    } else {
-        $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
-    }
+    # if ( $enta_xml_methods{$method} ) {
+    #     if ( $method eq 'CeaseADSLOrder' ) {
+    #         $xml .= qq|<Response Type="ADSLCease">\n<OperationResponse">\n|;
+    #     }
+    #     else { 
+    #         $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
+    #     }
+    # } else {
+    #     $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
+    # }
 
     my $recurse;
     $recurse = sub {
@@ -244,11 +245,11 @@ sub request_xml {
     };
     $recurse->($formats{$method}, $args); 
 
-    if ( $enta_xml_methods{$method} ) {
-        $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
-    } else {
-        $xml .= "</OperationResponse>\n</ResponseBlock>";
-    }
+    # if ( $enta_xml_methods{$method} ) {
+    #     $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
+    # } else {
+    #     $xml .= "</OperationResponse>\n</ResponseBlock>";
+    # }
     return $xml;
 }
 
@@ -262,7 +263,7 @@ sub make_request {
     $ua->agent($agent . $ua->agent);
 
     my $version = 'stable';
-    my $version = @{[$self->version]} if @{[$self->version]};
+    $version = $self->version if $self->version;
 
     my $uri = $uri{$method};
 
@@ -509,8 +510,9 @@ sub get_appointments {
     my $data = {
         Telephone => $args{cli},
         Date => $args{date}
-    }
-    foreach (keys %{$args{attributes}}) {
+    };
+
+    foreach ( keys %{$args{attributes}} ) {
         $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
         $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
     }
@@ -541,7 +543,7 @@ sub book_appointment {
         Telephone => $args{cli},
         Date => $args{date},
         TimeSlot => $args{timeslot}
-    }
+    };
     foreach (keys %{$args{attributes}}) {
         $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
         $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
@@ -1275,8 +1277,6 @@ sub order {
 
     $self->_check_params(\%args, @required);
 
-    $args{"isdn"} = 'N';
-    $entatype{"CreateADSLOrder"} = "ADSLMigrationOrder" if $args{mac};
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $args{"crd"} = $d->dmy("/");
 
