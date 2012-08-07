@@ -285,7 +285,10 @@ sub make_request {
         push @{$ua->requests_redirectable}, 'GET';
         my ($key, $value);
         $url .= '?';
-        $url .= "$key=$value&" while (($key, $value) = each (%$data));
+        foreach my $key (keys %$data) {
+            next unless $data->{$key};
+            $url .= "$key=".$data->{$key}."&";
+        }
 
         $req = new HTTP::Request 'GET' => $url;
     }
