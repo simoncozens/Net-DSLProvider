@@ -127,68 +127,90 @@ my %formats = (
 # LLU Create Order
     CreateLLUOrder => {
         ADSLAccount => {
-            Product => 1, Title => 1, FirstName => 1, Surname => 1, 
-            CompanyName => 1, Building => 1, Street => 1, Town => 1,
-            County => 1, Postcode => 1, TelephoneDay => 1, 
-            TelephoneEvening => 1, Fax => 1, Email => 1, Telephone => 1, 
-            ProvisionDate => 1, MAC => 1, 
+            Product => 'prod-id', Title => 'title',
+            FirstName => 'forename', Surname => 'surname',
+            CompanyName => 'company', Building => 'building',
+            Street => 'street', Town => 'city', County => 'county',
+            Postcode => 'postcode', TelephoneDay => 'telephone', 
+            TelephoneEvening => 'telephone-eve', Fax => 'fax',
+            Email => 'email', Telephone => 'cli', ProvisionDate => 'crd',
+            MAC => 'mac', 
             Charges => {
-                Initial => 1, Recurring => 1
+                Initial => 'initial-fee', Recurring => 'recurring-fee'
             },
             RadiusDetails => {
-                Username => 1, Password => 1, Realm => BaseDomain => 1,
+                Username => 'username', Password => 'password',
+                Realm => 'realm', BaseDomain => 'basedomain',
                 IPAddresses => {
-                    IPv4 => { NumberRequired => 1 },
-                    IPv6 => { Enabled => 1 }
+                    IPv4 => { NumberRequired => 'allocation-size' },
+                    IPv6 => { Enabled => 'ipv6' }
                 }
             }
         },
         BillingAccount => {
-            ContractTerm => 1, BillingPeriod => 1,
-            InitialPaymentMethod => 1, OngoingPaymentMethod => 1, 
-            PaymentMethod => 1, PurchaseOrderNumber => 1
+            ContractTerm => 'contract-term',
+            BillingPeriod => 'billing-period',
+            InitialPaymentMethod => 'initial-payment',
+            OngoingPaymentMethod => 'ongoing-payment',
+            PaymentMethod => 'payment-method',
+            PurchaseOrderNumber => 'client-ref'
         }.
         CustomerRecord => {
-            cCustomerID => 1, cTitle => 1, cFirstName => 1, 
-            cSurname => 1, cCompanyName => 1, cBuilding => 1, 
-            cStreet => 1, cTown => 1, cCounty => 1, cPostcode => 1, 
-            cTelephoneDay => 1, cTelephoneEvening => 1, cFax => 1,
-            cEmail => 1
+            cCustomerID => 'customer-id', cTitle => 'ctitle',
+            cFirstName => 'cforename', cSurname => 'csurname',
+            cCompanyName => 'ccompany', cBuilding => 'cbuilding', 
+            cStreet => 'cstreet', cTown => 'ctown', cCounty => 'ccounty',
+            cPostcode => 'cpostcode', cTelephoneDay => 'ctelephone',
+            cTelephoneEvening => 'ctelephone', cFax => 'cfax', 
+            cEmail => 'cemail'
         }
     },
 # Create ADSL / FTTC Order (not LLU)
     CreateADSLOrder => {
         ADSLAccount => {
-            Product => 1, ProductInitialFee => 1, 
-            ProductOngoingFee => 1, Title => 1, FirstName => 1,
-            Surname => 1, CompanyName => 1, Building => 1, Street => 1,
-            Town => 1, County => 1, Postcode => 1, OnsiteHazards => 1, 
-            TelephoneDay => 1, TelephoneEvening => 1, Fax => 1, 
-            Email => 1, Telephone => 1, ProvisionDate => 1, NAT => 1, 
-            InitialNoNATFee => 1, NoNatReason => 1, Username => 1,
-            Password => 1, ISPName => 1, CareLevel => 1, 
-            InitialCareLevelFee => 1, OngoingCareLevelFee => 1, 
-            LineSpeed => 1, OveruseMethod => 1, MaxPAYGAmount => 1,
-            MAC => 1, Realm => 1, BaseDomain => 1, StabilityOption => 1,
-            Interleave => 1, BestEfforts => 1, BestEffortsInitialFee => 1,
-            BestEffortsOngoingFee => 1, InstallFee => 1, Upstream => 1,
-            UpstreamInitialFee => 1, UpstreamOngoingFee => 1,
-            AssignIPV6 => 1
+            Product => 'prod-id', ProductInitialFee => 'initial-fee', 
+            ProductOngoingFee => 'recurring-fee', Title => 'title',
+            FirstName => 'forename', Surname => 'surname',
+            CompanyName => 'company', Building => 'building', 
+            Street => 'street', Town => 'city', County => 'county', 
+            Postcode => 'postcode', OnsiteHazards => 'hazards', 
+            TelephoneDay => 'telephone', TelephoneEvening => 'telephone-eve', 
+            Fax => 'fax', Email => 'email', Telephone => 'cli', 
+            ProvisionDate => 'crd', NAT => 'allocation-size',
+            InitialNoNATFee => 'ipv4-fee', NoNatReason => 'ipv4-reason', 
+            Username => 'username', Password => 'password', 
+            ISPName => 'losing-isp', CareLevel => 'care-level', 
+            InitialCareLevelFee => 'iclfee', OngoingCareLevelFee => 'oclfee', 
+            LineSpeed => 'linespeed', OveruseMethod => 'topup', 
+            MaxPAYGAmount => 'payg-limit', MAC => 'mac', Realm => 'realm',
+            BaseDomain => 'base-domain', StabilityOption => 'stability',
+            Interleave => 'max-interleaving', BestEfforts => 'best-efforts',
+            BestEffortsInitialFee => 'be-initial-fee',
+            BestEffortsOngoingFee => 'be-recurring-fee', 
+            InstallFee => 'install-fee', Upstream => 'upstream',
+            UpstreamInitialFee => 'up-initial-fee', 
+            UpstreamOngoingFee => 'up-recurring-fee', AssignIPV6 => 'ipv6'
         },
         BillingAccount => {
-            PurchaseOrderNumber => 1, BillingPeriod => 1, 
-            ContractTerm => 1, InitialPaymentMethod => 1,
-            OngoingPaymentMethod => 1, PaymentMethod => 1
+            PurchaseOrderNumber => 'client-ref', 
+            BillingPeriod => 'billing-period', 
+            ContractTerm => 'contract-term',
+            InitialPaymentMethod => 'initial-payment',
+            OngoingPaymentMethod => 'ongoing-payment', 
+            PaymentMethod => 'payment-method'
         },
         CustomerRecord => {
-            cCustomerID => 1, cTitle => 1, cFirstName => 1,
-            cSurname => 1, cCompanyName => 1, cBuilding => 1,
-            cStreet => 1, cTown => 1, cCounty => 1, cPostcode => 1,
-            cTelephoneDay => 1, cTelephoneEvening => 1, cFax => 1,
-            cEmail => 1
+            cCustomerID => 'customer-id', cTitle => 'ctitle', 
+            cFirstName => 'cforename', cSurname => 'csurname', 
+            cCompanyName => 'ccompany', cBuilding => 'cbuilding',
+            cStreet => 'cstreet', cTown => 'ctown', 
+            cCounty => 'ccounty', cPostcode => 'cpostcode',
+            cTelephoneDay => 'ctelephone', 
+            cTelephoneEvening => 'ctelephone-eve', 
+            cFax => 'cfax', cEmail => 'cemail'
         },
         AppointmentDetails => {
-            AppointmentReference => 1
+            AppointmentReference => 'appt-ref'
         }
     }
 );
