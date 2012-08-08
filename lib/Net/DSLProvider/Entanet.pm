@@ -40,25 +40,29 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
 # Map methods to URI
 my %uri = ( RequestAppointmentBook => "Appointments",
     RequestAppointmentSlot => "Appointments",
-    Poll => "Appointments", ADSLChecker => "ADSLChecker",
-
-    CreateADSLOrder => "CreateADSLOrder",
+    Poll => "Appointments"
     );
 
 
 my %formats = (
 # Appointments Methods
-    RequestAppointmentBook => { Date => 1,
-        TelephoneNumber => 1,
+    RequestAppointmentBook => { Date => 'date',
+        TelephoneNumber => 'cli',
         listOfAttributes => { Attributes => {
-            AttributeName => 1, AttributeValue => 1 }
+            AttributeName => 'attribute-name', 
+            AttributeValue => 'attribute-value' }
         }
     },
     RequestAppointmentSlot => {
-        Date => 1, TimeSlot => 1,
-        TelephoneNumber => 1, listOfAttributes => 1
+        Date => 'date', TimeSlot => 'time-slot',
+        TelephoneNumber => 'cli', listOfAttributes => {
+            Attributes => {
+                AttributeName => 'attribute-name',
+                AttributeValue => 'attribute-value'
+            }
+        }
     },
-    Poll => { Token => 1 },
+    Poll => { Token => 'token' },
 # ADSL Checker Method
     ADSLChecker => { PhoneNo => 1, PostCode => 1,
         MACcode => 1, EUPostCode => 1
@@ -69,12 +73,16 @@ my %formats = (
     },
 # Modify Line Features
     ModifyLineFeatures => { ADSLAccount => {
-        Ref => 1, Username => 1, Telephone => 1,
+        Ref => 'ref', Username => 'username', Telephone => 'cli',
         LineFeatures => {
-            Interleaving => 1, StabilityOption => 1, 
-            ElevatedBestEfforts => 1, ElevatedBestEffortsFee => 1, 
-            MaintenanceCategory => 1, MaintenanceCategoryFee => 1,
-            Upstream => 1, UpstreamFee => 1
+            Interleaving => 'interleaving',
+            StabilityOption => 'stability',
+            ElevatedBestEfforts => 'ebe',
+            ElevatedBestEffortsFee => 'ebe-fee', 
+            MaintenanceCategory => 'maintenance',
+            MaintenanceCategoryFee => 'maintenance-fee',
+            Upstream => 'upstream',
+            UpstreamFee => 'upstream-fee'
             }
         }
     },
@@ -108,16 +116,19 @@ my %formats = (
     GetHeavyUsers => { Username => 1, Ref => 1, Telephone => 1 },
 # Update ADSL Price
     UpdateADSLPrice => { ADSLAccount => {
-        Username => 1, Ref => 1, Telephone => 1, 
+        Username => 'username', Ref => 'ref', Telephone => 'cli', 
         PriceDetails => {
-            PeriodFee => 1, EnhancedCareFee => 1, 
-            ElevatedBestEffortsFee => 1 }
+            PeriodFee => 'period-fee',
+            EnhancedCareFee => 'enhanced-fee', 
+            ElevatedBestEffortsFee => 'ebe-fee' }
         }
     },
 # Update ADSL Contact Details
     UpdateADSLContact => { ADSLAccount => {
-        Username => 1, Ref => 1, Telephone => 1, ContactDetails => {
-            Email => 1, TelDay => 1, TelEve => 1 }
+        Username => 'username', Ref => 'ref', Telephone => 'cli',
+        ContactDetails => {
+            Email => 'email', TelDay => 'telephone',
+            TelEve => 'telephone-eve' }
         }
     },
 # Usage Information    
