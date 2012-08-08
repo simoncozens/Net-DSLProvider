@@ -265,7 +265,7 @@ sub make_request {
     my $version = 'stable';
     $version = $self->version if $self->version;
 
-    my $uri = $uri{$method};
+    my $uri = ($uri{$method} ? $uri{$method} : $method);
 
     my $url = ENDPOINT . "$version/$uri" . '.php';
 
