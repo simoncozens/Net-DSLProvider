@@ -91,7 +91,7 @@ $sigs{regrade} = ["ref|telephone|username|service-id", "prod-id"];
 
 $sigs{care_level} = ["ref|telephone|username|service-id", "care-level"];
 
-$sigs{requestmac} = ["ref|telephone|username|service-id"];
+$sigs{request_mac} = ["ref|telephone|username|service-id"];
 
 $sigs{cease} = ["ref|telephone|username|service-id", "crd"];
 
