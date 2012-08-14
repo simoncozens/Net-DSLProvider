@@ -46,19 +46,22 @@ my %uri = ( RequestAppointmentBook => "Appointments",
 
 my %formats = (
 # Appointments Methods
-    RequestAppointmentBook => { Date => 'date',
+    RequestAppointmentBook => {
+        Date => 'date',
         TelephoneNumber => 'cli',
-        listOfAttributes => { Attributes => {
-            AttributeName => 'attribute-name', 
-            AttributeValue => 'attribute-value' }
+        listOfAttributes => { 
+            Attributes => {
+                AttributeName => 'name',
+                AttributeValue => 'value'
+            }
         }
     },
     RequestAppointmentSlot => {
         Date => 'date', TimeSlot => 'time-slot',
         TelephoneNumber => 'cli', listOfAttributes => {
             Attributes => {
-                AttributeName => 'attribute-name',
-                AttributeValue => 'attribute-value'
+                AttributeName => 'name',
+                AttributeValue => 'value'
             }
         }
     },
@@ -235,7 +238,7 @@ sub request_xml {
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n
     <ResponseBlock Type="$live">\n
     <Response Type="$method">\n
-    <OperationResponse>|;
+    <OperationResponse>\n|;
 
     # XXX Waiting for confirmation from Enta that they will make API
     # XXX consistent with regard to XML structure!
@@ -256,23 +259,30 @@ sub request_xml {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
-                if ($key) {
-                    if ( $key eq 'ProductChange' ) {
-                        my $id = "Ref" if $args->{Ref};
-                        $id = "Telephone" if $args->{Telephone};
-                        $id = "Username" if $args->{Username};
-                        $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
-                    }
-                    else {
-                        $xml .= "\t<$key>\n";
-                    }
-                }
+                # if ($key) {
+                #     if ( $key eq 'ProductChange' ) {
+                #         my $id = "Ref" if $args->{Ref};
+                #         $id = "Telephone" if $args->{Telephone};
+                #         $id = "Username" if $args->{Username};
+                #         $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
+                #     }
+                #     else {
+                #         $xml .= "\t<$key>\n";
+                #     }
+                #  }
+
+                $xml .= "\t<$key>\n";
                 $recurse->($contents, $data->{$key});
                 if ($key) {
                     $xml .= "</$key>\n";
                 }
             } else {
-                $xml .= qq{\t\t<$key>}.encode_entities_numeric($args->{$key})."</$key>\n" if $args->{$key};
+                warn "Key is $key\t\tContents is $contents data is ".$args->{$contents};
+
+                $xml .= qq{\t\t<$key>};
+                $xml .= encode_entities_numeric($args->{$contents}) if $args->{$contents};
+                $xml .= qq{</$key>\n};
+                # $xml .= qq{\t\t<$key>}.encode_entities_numeric($args->{$contents})."</$key>\n";
             }
         }
     };
@@ -283,6 +293,7 @@ sub request_xml {
     # } else {
     #     $xml .= "</OperationResponse>\n</ResponseBlock>";
     # }
+    $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
     return $xml;
 }
 
@@ -305,6 +316,8 @@ sub make_request {
     if ( $requesttype{$method} eq 'post' ) {
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
+
+        warn $xml;
 
         $body .= "--" . BOUNDARY . "\n";
         $body .= "Content-Disposition: form-data; name=\"userfile\"; filename=\"XML.data\"\n";
@@ -544,13 +557,13 @@ sub get_appointments {
     return unless $args{cli} && $args{date};
 
     my $data = {
-        Telephone => $args{cli},
-        Date => $args{date}
+        cli => $args{cli},
+        date => $args{date}
     };
 
     foreach ( keys %{$args{attributes}} ) {
-        $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
-        $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
+        $data->{listOfAttributes}->{Attributes}->{name} = $_;
+        $data->{listOfAttributes}->{Attributes}->{value} = 'Required';
     }
 
     my $response = $self->make_request("RequestAppointmentBook", $data);
@@ -581,8 +594,8 @@ sub book_appointment {
         TimeSlot => $args{timeslot}
     };
     foreach (keys %{$args{attributes}}) {
-        $data->{listOfAttributes}->{Attribute}->{AttributeName} = $_;
-        $data->{listOfAttributes}->{Attribute}->{AttributeValue} = 'Required';
+        $data->{listOfAttributes}->{Attribute}->{name} = $_;
+        $data->{listOfAttributes}->{Attribute}->{value} = 'Required';
     }
 
     my $response = $self->make_request("RequestAppointmentSlot", $data);
