@@ -33,7 +33,7 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
     UsageHistory => "get", GetMaxReports => "get", GetHeavyUsers => "get",
     UpdateADSLPrice => "post", UpdateADSLContact => "post", 
     GetADSLUsage => "get", CreateLLUOrder => "post",
-    CreateADSLOrder => "post"
+    CreateADSLOrder => "post", UsageHistoryDetail => "get"
     );
 
 
