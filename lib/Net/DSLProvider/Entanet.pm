@@ -40,7 +40,7 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
 # Map methods to URI
 my %uri = ( RequestAppointmentBook => "Appointments",
     RequestAppointmentSlot => "Appointments",
-    Poll => "Appointments"
+    Poll => "Appointments", CreateLLUOrder => "CreateLluOrder"
     );
 
 
@@ -150,15 +150,15 @@ my %formats = (
             Email => 'email', Telephone => 'cli', ProvisionDate => 'crd',
             MAC => 'mac', 
             Charges => {
-                Initial => 'initial-fee', Recurring => 'recurring-fee'
+                Initial => 'ci-fee', Recurring => 'cr-fee'
             },
-            RadiusDetails => {
-                Username => 'username', Password => 'password',
-                Realm => 'realm', BaseDomain => 'basedomain',
-                IPAddresses => {
-                    IPv4 => { NumberRequired => 'allocation-size' },
-                    IPv6 => { Enabled => 'ipv6' }
-                }
+        },
+        RadiusDetails => {
+            Username => 'username', Password => 'password',
+            Realm => 'realm', BaseDomain => 'basedomain',
+            IPAddresses => {
+                IPv4 => { NumberRequired => 'allocation-size' },
+                IPv6 => { Enabled => 'ipv6' }
             }
         },
         BillingAccount => {
@@ -168,7 +168,7 @@ my %formats = (
             OngoingPaymentMethod => 'ongoing-payment',
             PaymentMethod => 'payment-method',
             PurchaseOrderNumber => 'client-ref'
-        }.
+        },
         CustomerRecord => {
             cCustomerID => 'customer-id', cTitle => 'ctitle',
             cFirstName => 'cforename', cSurname => 'csurname',
@@ -235,9 +235,12 @@ sub request_xml {
     my $live = "Test";
     $live = "Live" unless $self->testing;
 
-    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>\n
-    <ResponseBlock Type="$live">\n
-    <Response Type="$method">\n
+    my $rtype = $method;
+    $rtype = "LluOrder" if $method eq "CreateLLUOrder";
+
+    my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
+    <ResponseBlock Type="$live">
+    <Response Type="$rtype">
     <OperationResponse>\n|;
 
     # XXX Waiting for confirmation from Enta that they will make API
@@ -277,8 +280,6 @@ sub request_xml {
                     $xml .= "</$key>\n";
                 }
             } else {
-                warn "Key is $key\t\tContents is $contents data is ".$args->{$contents};
-
                 $xml .= qq{\t\t<$key>};
                 $xml .= encode_entities_numeric($args->{$contents}) if $args->{$contents};
                 $xml .= qq{</$key>\n};
@@ -317,7 +318,7 @@ sub make_request {
         push @{$ua->requests_redirectable}, 'POST';
         my $xml = $self->request_xml($method, $data);
 
-        warn $xml;
+        warn $xml if $self->debug;
 
         $body .= "--" . BOUNDARY . "\n";
         $body .= "Content-Disposition: form-data; name=\"userfile\"; filename=\"XML.data\"\n";
@@ -339,7 +340,7 @@ sub make_request {
         $req = new HTTP::Request 'GET' => $url;
     }
 
-    $req->authorization_basic(@{[$self->user]}, @{[$self->pass]});
+    $req->authorization_basic($self->user, $self->pass);
     $req->header( 'MIME_Version' => '1.0', 'Accept' => 'text/xml' );
 
     if ( $requesttype{$method} eq 'post' ) {
@@ -556,9 +557,11 @@ sub get_appointments {
     my ($self, %args) = @_;
     return unless $args{cli} && $args{date};
 
+    my $d = Time::Piece->strptime($args{date}, "%F");
+
     my $data = {
         cli => $args{cli},
-        date => $args{date}
+        date => $d->strftime("%d/%m/%y")
     };
 
     foreach ( keys %{$args{attributes}} ) {
@@ -1336,6 +1339,17 @@ sub order {
     return ( "order_id" => $response->{OurRef},
              "service_id" => $response->{OurRef},
              "payment_code" => $response->{TelephonePaymentCode} );
+}
+
+sub llu_order {
+    my ($self, %args) = @_;
+    my $d = Time::Piece->strptime($args{"crd"}, "%F");
+    $args{"crd"} = $d->strftime("%d/%m/%y");
+
+    $args{"ci-fee"} = "30.00" unless $args{"ci-fee"};
+    $args{"cr-fee"} = "30.00" unless $args{"cr-fee"};
+
+    $self->make_request("CreateLLUOrder", \%args);
 }
 
 =head2 terms_and_conditions
