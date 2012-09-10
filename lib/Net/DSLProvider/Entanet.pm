@@ -359,8 +359,15 @@ sub make_request {
 
     # Sometimes Enta doesn't return anything at all on success
     return undef unless $res->content;
+    my $response = $res->content;
 
-    my $resp_o = XMLin($res->content, SuppressEmpty => 1);
+    # remove \r\n characters if Enta developers insert them - idiots!
+    if ( $response =~ /^\r\n/ ) {
+        $response = substr($res->content, 2);
+        $self->debug_dump($response) if $self->debug;
+    }
+
+    my $resp_o = XMLin($response, SuppressEmpty => 1);
 
     if ($resp_o->{Response}->{Type} eq 'Error') { die $resp_o->{Response}->{OperationResponse}->{ErrorDescription}; };
 
@@ -1348,6 +1355,8 @@ sub llu_order {
 
     $args{"ci-fee"} = "30.00" unless $args{"ci-fee"};
     $args{"cr-fee"} = "30.00" unless $args{"cr-fee"};
+
+    $args{building} = $args{street} unless $args{building};
 
     $self->make_request("CreateLLUOrder", \%args);
 }
