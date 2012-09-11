@@ -1042,9 +1042,9 @@ sub cease {
     return $response->{OurRef};
 }
 
-=head2 requestmac
+=head2 request_mac
 
-    $enta->requestmac( "service-id" => 'ADSL12345');
+    $enta->request_mac( "service-id" => 'ADSL12345');
 
 Obtains a MAC for the given service. 
 
