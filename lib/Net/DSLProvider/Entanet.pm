@@ -571,8 +571,8 @@ sub get_appointments {
     };
 
     foreach ( keys %{$args{attributes}} ) {
-        $data->{listOfAttributes}->{Attributes}->{name} = $_;
-        $data->{listOfAttributes}->{Attributes}->{value} = 'Required';
+        $data->{name} = $_;
+        $data->{value} = $args{attributes}->{$_};
     }
 
     my $response = $self->make_request("RequestAppointmentBook", $data);
@@ -603,8 +603,8 @@ sub book_appointment {
         TimeSlot => $args{timeslot}
     };
     foreach (keys %{$args{attributes}}) {
-        $data->{listOfAttributes}->{Attribute}->{name} = $_;
-        $data->{listOfAttributes}->{Attribute}->{value} = 'Required';
+        $data->{name} = $_;
+        $data->{value} = $args{attributes}->{$_};
     }
 
     my $response = $self->make_request("RequestAppointmentSlot", $data);
