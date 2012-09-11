@@ -631,6 +631,20 @@ sub list_connections {
     return @{$response->{ADSLAccount}};
 }
 
+=head2 pending_orders
+
+    $enta->pending_orders();
+
+Returns a list of all pending orders with their status    
+
+=cut    
+
+sub pending_orders {
+    my ($self, %args) = @_;
+    my $response = $self->make_request("PendingOrders", \%args);
+    return @{$response->{Orders}->{Order}};
+}
+
 
 =head2 regrade_options
 
