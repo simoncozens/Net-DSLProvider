@@ -642,9 +642,24 @@ Returns a list of all pending orders with their status
 sub pending_orders {
     my ($self, %args) = @_;
     my $response = $self->make_request("PendingOrders", \%args);
+    return unless $response->{Orders}->{NumberOfOrders} > 0;
     return @{$response->{Orders}->{Order}};
 }
 
+=head2 pstn_pending_orders
+
+    $enta->pstn_pending_orders();
+
+Returns a list of all pending PSTN orders
+
+=cut
+
+sub pstn_pending_orders {
+    my ($self, %args) = @_;
+    my $response = $self->make_request("PSTNPendingOrders", \%args);
+    return unless $response->{Orders}->{NumberOfOrders} > 0;
+    return @{$response->{Orders}->{Order}};
+}
 
 =head2 regrade_options
 
