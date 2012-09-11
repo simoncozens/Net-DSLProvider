@@ -90,7 +90,7 @@ my %formats = (
         }
     },
 # Get Rate Limited Connections
-    GetRateLimited => { Username => 1, Ref => 1, Telephone => 1 },
+    GetRateLimited => { ReturnType => 1 },
 # Reporting Tools
     AdslAccount => { Username => 1, Ref => 1, Telephone => 1 },
     ListConnections => { liveorceased => 1, fields => 1 },
@@ -394,6 +394,9 @@ sub make_request {
     if ( $resp_o->{Response}->{OperationResponse} ) {
         return $resp_o->{Response}->{OperationResponse};
     }
+    elsif ($resp_o->{OperationResponse}) {
+        return $resp_o->{OperationResponse};
+    }
     else {
         return $resp_o->{Response};
     }
@@ -659,6 +662,30 @@ sub pstn_pending_orders {
     my $response = $self->make_request("PSTNPendingOrders", \%args);
     return unless $response->{Orders}->{NumberOfOrders} > 0;
     return @{$response->{Orders}->{Order}};
+}
+
+=head2 rate_limited
+
+    $enta->rate_limited( returntype => "username" );
+
+Returns a list of connections which are currently rate limited
+
+=cut
+
+sub rate_limited {
+    my ($self, %args) = @_;
+    if ( $args{returntype} ) {
+        $args{returntype} = ucfirst $args{returntype};
+    }
+
+    my $response = $self->make_request("GetRateLimited", \%args);
+}
+
+sub get_blocked {
+    my ($self, %args) = @_;
+
+    my $response = $self->make_request("GetBlocked", \%args);
+    return @{$response->{ADSLAccount}};
 }
 
 =head2 regrade_options
