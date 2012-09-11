@@ -307,8 +307,7 @@ sub make_request {
     my $agent = __PACKAGE__ . '/0.1 ';
     $ua->agent($agent . $ua->agent);
 
-    my $version = 'stable';
-    $version = $self->version if $self->version;
+    my $version = ($self->version ? $self->version : 'stable');
 
     my $uri = ($uri{$method} ? $uri{$method} : $method);
 
@@ -615,6 +614,23 @@ sub book_appointment {
     return unless $appt->{Date};
     return $appt;
 }
+
+=head2 list_connections
+
+    $enta->list_connections(liveorceased=>"live", fields=>"Username,Ref");
+
+Returns a list of connections as an array
+
+=cut
+
+sub list_connections {
+    my ($self, %args) = @_;
+    return unless $args{liveorceased} && $args{fields};
+
+    my $response = $self->make_request("ListConnections", \%args);
+    return @{$response->{ADSLAccount}};
+}
+
 
 =head2 regrade_options
 
