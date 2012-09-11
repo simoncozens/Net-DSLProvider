@@ -71,9 +71,7 @@ my %formats = (
         MACcode => 1, EUPostCode => 1
     },
 # Get Blocked Connections
-    GetBlocked => { Username => 1, 
-        Ref => 1, Telephone => 1
-    },
+    GetBlocked => { ReturnType => 1 },
 # Modify Line Features
     ModifyLineFeatures => { ADSLAccount => {
         Ref => 'ref', Username => 'username', Telephone => 'cli',
@@ -683,6 +681,7 @@ sub rate_limited {
 
 sub get_blocked {
     my ($self, %args) = @_;
+    $args{returntype} = ucfirst $args{returntype} if $args{returntype};
 
     my $response = $self->make_request("GetBlocked", \%args);
     return @{$response->{ADSLAccount}};
