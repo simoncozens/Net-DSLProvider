@@ -679,12 +679,28 @@ sub rate_limited {
     my $response = $self->make_request("GetRateLimited", \%args);
 }
 
+=head2 get_blocked
+    
+    $enta->get_blocked( returntype => "telephone" );
+
+Return a list of connections which are blocked and the reason for the
+block.
+
+=cut
+
 sub get_blocked {
     my ($self, %args) = @_;
     $args{returntype} = ucfirst $args{returntype} if $args{returntype};
 
     my $response = $self->make_request("GetBlocked", \%args);
     return @{$response->{ADSLAccount}};
+}
+
+sub get_bt_faults {
+    my ($self, %args) = @_;
+
+    my $response = $self->make_request("GetBTFault", \%args);
+    return if $response->{TotalResults} == 0;
 }
 
 =head2 regrade_options
