@@ -1104,6 +1104,23 @@ sub update_contact {
     return 1;
 }
 
+
+=head2 update_price
+
+    $enta->update_price("service-id" => "ADSL1234", period-fee => 19.99);
+
+Updates the price charged for a given service
+
+=cut
+
+sub update_price {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args);
+
+    my $response = $self->make_request("UpdateADSLPrice", \%args);
+    return $response;
+}
+
 =head2 cease
 
     $enta->cease( "service-id" => "ADSL12345", "crd" => "1970-01-01" );
