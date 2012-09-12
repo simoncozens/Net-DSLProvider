@@ -579,7 +579,7 @@ sub get_appointments {
     my $response = $self->make_request("RequestAppointmentBook", $data);
     my $token = $response->{Token};
 
-    my $appts = $self->make_request("Poll", { Token => $token });
+    my $appts = $self->make_request("Poll", { token => $token });
     if ( $response->{ListOfAppointment}->{Appointment} ) {
         return $response->{ListOfAppointment}->{Appointment};
     }
@@ -611,9 +611,15 @@ sub book_appointment {
     my $response = $self->make_request("RequestAppointmentSlot", $data);
     my $token = $response->{Token};
 
-    my $appt = $self->make_request("Poll", { Token => $token });
+    my $appt = $self->make_request("Poll", { token => $token });
     return unless $appt->{Date};
     return $appt;
+}
+
+sub poll {
+    my ($self, %args) = @_;
+    $self->_check_params(\%args, qw/token/);
+    $self->make_request("Poll", \%args);
 }
 
 =head2 list_connections
