@@ -36,6 +36,14 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
     CreateADSLOrder => "post", UsageHistoryDetail => "get"
     );
 
+my %optional = ( 
+    UpdateADSLContact => {
+        Email => 1, TelDay => TelEve => 1
+    },
+    UpdateADSLPrice => {
+        PeriodFee => 1, EnhancedCareFee => 1, ElevatedBestEffortsFee => 1
+    },
+    );
 
 # Map methods to URI
 my %uri = ( RequestAppointmentBook => "Appointments",
@@ -245,6 +253,11 @@ sub request_xml {
     $recurse = sub {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
+            if ($key eq 'Ref' || $key eq 'Username' || $key eq 'Telephone') {
+                next unless $args->{$contents};
+            }
+            next if $optional{$method}->{$key} && ! $args->{$contents};
+
             if (ref $contents eq "HASH") {
                 $xml .= "\t<$key>\n";
                 $recurse->($contents, $data->{$key});
