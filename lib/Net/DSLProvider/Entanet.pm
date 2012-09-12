@@ -241,37 +241,11 @@ sub request_xml {
     <Response Type="$rtype">
     <OperationResponse>\n|;
 
-    # XXX Waiting for confirmation from Enta that they will make API
-    # XXX consistent with regard to XML structure!
-
-    # if ( $enta_xml_methods{$method} ) {
-    #     if ( $method eq 'CeaseADSLOrder' ) {
-    #         $xml .= qq|<Response Type="ADSLCease">\n<OperationResponse">\n|;
-    #     }
-    #     else { 
-    #         $xml .= qq|<Response Type="| . $entatype{$method} . qq|">\n<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
-    #     }
-    # } else {
-    #     $xml .= qq|<OperationResponse Type="| . $entatype{$method} . qq|">\n|;
-    # }
-
     my $recurse;
     $recurse = sub {
         my ($format, $data) = @_;
         while (my ($key, $contents) = each %$format) {
             if (ref $contents eq "HASH") {
-                # if ($key) {
-                #     if ( $key eq 'ProductChange' ) {
-                #         my $id = "Ref" if $args->{Ref};
-                #         $id = "Telephone" if $args->{Telephone};
-                #         $id = "Username" if $args->{Username};
-                #         $xml .= qq|<$key $id="|.$args->{$id}.qq|">\n|;
-                #     }
-                #     else {
-                #         $xml .= "\t<$key>\n";
-                #     }
-                #  }
-
                 $xml .= "\t<$key>\n";
                 $recurse->($contents, $data->{$key});
                 if ($key) {
@@ -287,11 +261,6 @@ sub request_xml {
     };
     $recurse->($formats{$method}, $args); 
 
-    # if ( $enta_xml_methods{$method} ) {
-    #     $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
-    # } else {
-    #     $xml .= "</OperationResponse>\n</ResponseBlock>";
-    # }
     $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
     return $xml;
 }
