@@ -38,11 +38,14 @@ my %requesttype = ( RequestAppointmentBook => "post", Poll => "post",
 
 my %optional = ( 
     UpdateADSLContact => {
-        Email => 1, TelDay => TelEve => 1
+        Email => 1, TelDay => 1, TelEve => 1
     },
     UpdateADSLPrice => {
         PeriodFee => 1, EnhancedCareFee => 1, ElevatedBestEffortsFee => 1
     },
+    );
+
+my %shortxml = ( UpdateADSLContact => 1, UpdateADSLPrice => 1
     );
 
 # Map methods to URI
@@ -245,9 +248,15 @@ sub request_xml {
     $rtype = "LluOrder" if $method eq "CreateLLUOrder";
 
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
-    <ResponseBlock Type="$live">
+    <ResponseBlock Type="$live">|;
+    if ( $shortxml{$method} ) {
+        $xml .= qq|<OperationResponse Type="$rtype">\n|;
+    }
+    else {
+        $xml .= qq|
     <Response Type="$rtype">
     <OperationResponse>\n|;
+    }
 
     my $recurse;
     $recurse = sub {
@@ -274,7 +283,12 @@ sub request_xml {
     };
     $recurse->($formats{$method}, $args); 
 
-    $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
+    if ( $shortxml{$method} ) {
+        $xml .= "</OperationResponse>\n</ResponseBlock>";
+    }
+    else {
+        $xml .= "</OperationResponse>\n</Response>\n</ResponseBlock>";
+    }
     return $xml;
 }
 
@@ -1077,12 +1091,7 @@ sub update_contact {
     my ( $self, %args) = @_;
     $self->_check_params(\%args);
 
-    my $data = $self->serviceid(\%args);
-    for (qw/Email TelDay TelEve/) {
-        $data->{$_} = $args{lc $_} if $args{lc $_};
-    }
-
-    my $response = $self->make_request("UpdateADSLContact", $data);
+    my $response = $self->make_request("UpdateADSLContact", \%args);
     return 1;
 }
 
