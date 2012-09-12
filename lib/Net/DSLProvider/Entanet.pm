@@ -705,6 +705,11 @@ sub get_bt_faults {
     return if $response->{TotalResults} == 0;
 }
 
+sub heavy {
+    my ($self, %args) = @_;
+    $self->make_request("GetHeavyUsers", \%args);
+}
+
 =head2 regrade_options
 
     $enta->regrade_options( "service-id" => "ADSL12345" );
@@ -1092,7 +1097,7 @@ sub update_contact {
     $self->_check_params(\%args);
 
     my $response = $self->make_request("UpdateADSLContact", \%args);
-    return 1;
+    return $response->{ADSLAccount}->{ContactDetails};
 }
 
 
