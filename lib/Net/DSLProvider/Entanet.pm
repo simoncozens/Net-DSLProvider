@@ -247,6 +247,11 @@ sub request_xml {
     my $rtype = $method;
     $rtype = "LluOrder" if $method eq "CreateLLUOrder";
 
+    if ( $method eq "CreateADSLOrder" ) {
+        $rtype = "ADSLOrder";
+        $rtype = "ADSLMigrationOrder" if $args->{mac};
+    }
+
     my $xml = qq|<?xml version="1.0" encoding="UTF-8"?>
     <ResponseBlock Type="$live">|;
     if ( $shortxml{$method} ) {
@@ -1381,6 +1386,14 @@ sub adslaccount {
     $adsl{service_details}->{live} = 'N';
     $adsl{service_details}->{live} = 'Y' if $adsl{adslaccount}->{status} eq 'Installed';
 
+    $adsl{service_details}->{cli} = $adsl{adslaccount}->{telephone};
+    $adsl{service_details}->{service_id} = $adsl{adslaccount}->{ourref};
+    $adsl{service_details}->{technology_type} = $adsl{adslaccount}->{connectiontype};
+    $adsl{service_details}->{username} = $adsl{adslaccount}->{username};
+    $adsl{service_details}->{password} = $adsl{adslaccount}->{password};
+    $adsl{service_details}->{product_id} = $adsl{adslaccount}->{product};
+    $adsl{service_details}->{ip_address} = $adsl{adslaccount}->{ipaddress};
+
     $adsl{adslaccount}->{provisiondate} =~ /(.*) \+0\d00/;
     my $activation_date = Time::Piece->strptime($1, "%a, %d %b %Y %H:%M:%S");
 
@@ -1444,10 +1457,10 @@ sub order {
 
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $args{"crd"} = $d->dmy("/");
+    $args{"telephone-eve"} = $args{telephone} unless $args{"telephone-eve"};
+    $args{"ctelephone-eve"} = $args{ctelephone} unless $args{"ctelephone-eve"};
 
-    my $data = $self->convert_input("CreateADSLOrder", \%args);
-
-    my $response = $self->make_request("CreateADSLOrder", $data);
+    my $response = $self->make_request("CreateADSLOrder", \%args);
 
     return ( "order_id" => $response->{OurRef},
              "service_id" => $response->{OurRef},
