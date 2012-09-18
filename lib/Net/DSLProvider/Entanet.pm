@@ -43,6 +43,13 @@ my %optional = (
     UpdateADSLPrice => {
         PeriodFee => 1, EnhancedCareFee => 1, ElevatedBestEffortsFee => 1
     },
+    ModifyLineFeatures =>
+        LineFeatures => {
+            Interleaving => 1, StabilityOption => 1,
+            ElevatedBestEfforts => 1, ElevatedBestEffortsFee => 1,
+            MaintenanceCategory => 1, MaintenanceCategoryFee => 1,
+            Upstream => 1, UpstreamFee => 1
+        }
     );
 
 my %shortxml = ( UpdateADSLContact => 1, UpdateADSLPrice => 1
