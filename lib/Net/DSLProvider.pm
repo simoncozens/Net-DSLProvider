@@ -3,7 +3,7 @@ use warnings;
 use strict;
 use base 'Class::Accessor';
 use Carp qw/croak/;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 __PACKAGE__->mk_accessors(qw/user pass debug testing/);
 
 =head1 NAME
@@ -149,8 +149,8 @@ and other Internet services, try UKFSN.
 Copyright 2009-2012 Simon Cozens & Jason Clifford
 
 This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
+under the terms of either: version 2 of the GNU General Public License 
+as published by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
 

@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
     NAME                => 'Net::DSLProvider',
-    AUTHOR              => q{Simon Cozens <simon@simon-cozens.org>},
+    AUTHOR              => q{Jason Clifford <jason@ukfsn.org>, Simon Cozens <simon@simon-cozens.org>},
     VERSION_FROM        => 'lib/Net/DSLProvider.pm',
     ABSTRACT_FROM       => 'lib/Net/DSLProvider.pm',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
@@ -14,6 +14,7 @@ WriteMakefile(
     PREREQ_PM => {
         'Test::More' => 0,
         'Class::Accessor' => 0,
+        'SOAP::Lite'    => 0,
         'HTML::Entities' => 0,
         'LWP' => 0,
         'HTTP::Cookies' => 0,

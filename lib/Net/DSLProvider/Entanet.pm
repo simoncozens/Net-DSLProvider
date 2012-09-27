@@ -451,6 +451,10 @@ sub serviceid {
     return { "Telephone" => $args->{"cli"} } if $args->{"cli"};
 }
 
+sub _date_format {
+    my ($self, $date) = @_;
+    return $date->strftime(($self->{dateformat} ? $self->{dateformat} : "%Y-%m-%d"));
+}
 
 =head2 services_available
 
@@ -1325,6 +1329,7 @@ sub getadslinstall {
 
     my @history = ();
     while ( my $log = shift @{$response->{InstallReturns}->{InstallReturn}} ) {
+        
         my %a = ();
         my $d = localtime($log->{DateReceived});
         $a{date} = $d->strftime($dateformat);

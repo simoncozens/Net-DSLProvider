@@ -1,4 +1,5 @@
 package Net::DSLProvider::Cerberus;
+use strict;
 use base 'Net::DSLProvider';
 use Net::DSLProvider::Cerberus::soap;
 use Time::Piece;
