@@ -20,3 +20,4 @@ pod_coverage_ok( "Net::DSLProvider::Entanet", "Entanet module is covered" );
 pod_coverage_ok( "Net::DSLProvider::Murphx", "Murphx module is covered" );
 pod_coverage_ok( "Net::DSLProvider::Cerberus", "Cerberus module is covered" );
 
+done_testing();
