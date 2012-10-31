@@ -54,6 +54,12 @@ sub _make_request {
     return $resp;
 }
 
+=head2 order
+
+Place an order. See the Cerberus docs for details of required params
+
+=cut
+
 sub order {
     my ($self, %args) = @_;
 

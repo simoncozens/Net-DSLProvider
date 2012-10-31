@@ -13,7 +13,7 @@ my $account = Net::DSLProvider::Murphx->new({
     clientid => $ENV{MURPHX_CLIENTID},
 });
 
-my $self_test = $account->make_request(selftest => { sysinfo => { type => "module" }});
+my $self_test = $account->_make_request(selftest => { sysinfo => { type => "module" }});
 is($self_test->{status}{no}, 0, "Self test passed");
 is($self_test->{block}{a}{module}{content}, "XPS" , "Checking selftest returned content");
 done_testing();
