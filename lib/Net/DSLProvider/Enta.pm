@@ -172,7 +172,7 @@ sub request_xml {
     return $xml;
 }
 
-sub make_request {
+sub _make_request {
     my ($self, $method, $data) = @_;
 
     my $ua = new LWP::UserAgent;
@@ -432,7 +432,7 @@ sub adslchecker {
         "Version" => 4
         } ;
 
-    my $response = $self->make_request("ADSLChecker", $data);
+    my $response = $self->_make_request("ADSLChecker", $data);
 
     my %results = ();
     foreach (keys %{$response->{Response}->{OperationResponse}}) {
@@ -462,7 +462,7 @@ sub username_available {
     my ($self, $username) = @_;
     die "You must provide the username parameter" unless $username;
 
-    my $response = $self->make_request("CheckUsernameAvailable", 
+    my $response = $self->_make_request("CheckUsernameAvailable", 
         { "username" => $username } );
 
     return undef if $response->{Response}->{OperationResponse}->{Available} eq "false";
@@ -507,7 +507,7 @@ sub interleaving_status {
     $self->_check_params(\%args, qw/service-id|username|telephone|ref/);
 
     my $data = $self->serviceid(\%args);
-    my $response = $self->make_request("GetInterleaving", $data);
+    my $response = $self->_make_request("GetInterleaving", $data);
 
     return $response->{Response}->{OperationResponse}->{Interleave};
 
@@ -664,7 +664,7 @@ sub modifylinefeatures {
     my $data = $self->serviceid(\%args);
     $data->{"LineFeatures"} = $args{"LineFeatures"};
 
-    my $response = $self->make_request("ModifyLineFeatures", $data);
+    my $response = $self->_make_request("ModifyLineFeatures", $data);
 
     my %return = ();
     foreach ( keys %{$response->{Response}->{OperationResponse}->{ADSLAccount}->{LineFeatures}} ) {
@@ -748,7 +748,7 @@ sub getbtfeed {
     my ($self, %args) = @_;
     $self->_check_params(\%args, (qw/days/));
 
-    my $response = $self->make_request("GetBTFeed", { "Days" => $args{days} });
+    my $response = $self->_make_request("GetBTFeed", { "Days" => $args{days} });
 
     my @records = ();
     while ( my $r = pop @{$response->{Response}->{OperationResponse}->{Records}->{Record}} ) {
@@ -784,7 +784,7 @@ sub update_contact {
         $data->{$_} = $args{lc $_} if $args{lc $_};
     }
 
-    my $response = $self->make_request("UpdateADSLContact", $data);
+    my $response = $self->_make_request("UpdateADSLContact", $data);
     return 1;
 }
 
@@ -812,7 +812,7 @@ sub cease {
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $data->{"ceaseDate"} = $d->dmy('/');
     
-    my $response = $self->make_request("CeaseADSLOrder", $data);
+    my $response = $self->_make_request("CeaseADSLOrder", $data);
 
     die "Cease order not accepted by Enta" unless $response->{Response}->{Type} eq 'Accept';
 
@@ -846,7 +846,7 @@ sub request_mac {
 
     my $data = $self->serviceid(\%args);
     
-    my $response = $self->make_request("RequestMAC", $data );
+    my $response = $self->_make_request("RequestMAC", $data );
 
     return ( "mac_requested" => 1 );
 }
@@ -865,7 +865,7 @@ sub auth_log {
 
     my $data = $self->serviceid(\%args);
     
-    my $response = $self->make_request("LastRadiusLog", $data );
+    my $response = $self->_make_request("LastRadiusLog", $data );
 
     my %log = ();
     my @r = ();
@@ -898,7 +898,7 @@ sub max_reports {
     
     my $data = $self->serviceid(\%args);
 
-    my $response = $self->make_request("GetMaxReports", $data);
+    my $response = $self->_make_request("GetMaxReports", $data);
 
     my %line = ();
     my @rate = ();
@@ -977,7 +977,7 @@ sub getadslinstall {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ( 'username' ) );
 
-    my $response = $self->make_request("GetAdslInstall", \%args);
+    my $response = $self->_make_request("GetAdslInstall", \%args);
 
     my $dateformat = "%Y-%m-%d";
     $dateformat = $args{dateformat} if $args{dateformat};
@@ -1035,7 +1035,7 @@ sub adslaccount {
     
     my $data = $self->serviceid(\%args);
     
-    my $response = $self->make_request("AdslAccount", $data );
+    my $response = $self->_make_request("AdslAccount", $data );
 
     my %adsl = ();
     foreach (keys %{$response->{Response}->{OperationResponse}} ) {
@@ -1120,7 +1120,7 @@ sub order {
 
     my $data = $self->_convert_input("CreateADSLOrder", \%args);
 
-    my $response = $self->make_request("CreateADSLOrder", $data);
+    my $response = $self->_make_request("CreateADSLOrder", $data);
 
     return ( "order_id" => $response->{Response}->{OperationResponse}->{OurRef},
              "service_id" => $response->{Response}->{OperationResponse}->{OurRef},
@@ -1164,7 +1164,7 @@ sub product_change {
     $args{schedule} = "FirstAvailableDate";
 
     my $data = $self->_convert_input("ProductChange", \%args);
-    my $response = $self->make_request("ProductChange", $data);
+    my $response = $self->_make_request("ProductChange", $data);
 
     return $response->{Response}->{OperationResponse}->{ProductChange}->{Results};
 }
@@ -1277,7 +1277,7 @@ sub usage_history {
 
     $data->{RawDisplay} = 1;
 
-    my $response = $self->make_request("UsageHistory", $data);
+    my $response = $self->_make_request("UsageHistory", $data);
 
     my $s = Time::Piece->strptime($response->{Response}->{OperationResponse}->{StartDateTime}, "%d %b %Y %H:%M:%S");
     my $e = Time::Piece->strptime($response->{Response}->{OperationResponse}->{EndDateTime}, "%d %b %Y %H:%M:%S");
@@ -1365,7 +1365,7 @@ sub usage_history_detail {
     my $date_format = "%Y-%m-%d";
     $date_format = $args{dateformat} if $args{dateformat};
 
-    my $response = $self->make_request("UsageHistoryDetail", $data);
+    my $response = $self->_make_request("UsageHistoryDetail", $data);
 
     my @usage = ();
     if ( $args{"day"} ) {
@@ -1425,7 +1425,7 @@ sub allowance {
     for (qw/telephone ref username/) {
         $data->{$_} = $args{$_} if $args{$_};
     }
-    my $response = $self->make_request("ADSLTopup", $data );
+    my $response = $self->_make_request("ADSLTopup", $data );
 
     return %{$response->{Response}->{OperationResponse}};
 }
@@ -1472,7 +1472,7 @@ sub connectionhistory {
     my $date_format = "%Y-%m-%d %H:%M:%S";
     $date_format = $args{dateformat} if $args{dateformat};
 
-    my $response = $self->make_request("ConnectionHistory", $data);
+    my $response = $self->_make_request("ConnectionHistory", $data);
     
     my @history = ();
 
@@ -1543,7 +1543,7 @@ sub case_search {
 
     my $data = $self->serviceid(\%args);
 
-    my $response = $self->make_request("GetNotes", $data);
+    my $response = $self->_make_request("GetNotes", $data);
 
     my @c = ();
     my $date_format = "%Y-%m-%d %H:%M:%S";
