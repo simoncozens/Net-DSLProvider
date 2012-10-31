@@ -3,7 +3,7 @@ use warnings;
 use strict;
 use base 'Class::Accessor';
 use Carp qw/croak/;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 __PACKAGE__->mk_accessors(qw/user pass debug testing/);
 
 =head1 NAME

@@ -18,6 +18,7 @@ WriteMakefile(
         'HTML::Entities' => 0,
         'LWP' => 0,
         'HTTP::Cookies' => 0,
+        'HTML::Entities' => 0,
         'XML::Simple' => 0,
         'Time::Piece' => 0,
         'Time::Seconds' => 0,
