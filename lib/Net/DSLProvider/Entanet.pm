@@ -1567,6 +1567,12 @@ sub usage_summary {
     );
 }
 
+=head2 usage_history
+
+    $enta->usage_history( startdatetime => '2010-01-01', enddatetime => '2010-12-01');
+
+=cut
+
 sub usage_history {
     my ($self, %args) = @_;
     $self->_check_params(\%args, (qw/startdatetime enddatetime/));
