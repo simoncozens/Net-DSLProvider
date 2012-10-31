@@ -408,7 +408,7 @@ sub make_request {
     }
 }
 
-sub convert_input {
+sub _convert_input {
     my ($self, $method, $args) = @_;
     die "convert_input called without method or args hashref" unless $method && ref $args eq 'HASH';
 
@@ -1147,7 +1147,7 @@ sub cease {
 
     my $data = undef;
     if ( $args{'service-id'} || $args{'ref'} ) {
-        $data = $self->convert_input("CeaseADSLOrder" ,\%args);
+        $data = $self->_convert_input("CeaseADSLOrder" ,\%args);
     }
     else {
         my %adsl = $self->adslaccount(%args);
@@ -1580,7 +1580,7 @@ sub usage_history {
         $args{enddatetime} = $s->dmy('/') . ' ' . $s->strftime("%H:%M:%S");
     }
 
-    my $data = $self->convert_input("UsageHistory", \%args);
+    my $data = $self->_convert_input("UsageHistory", \%args);
 
     $data->{RawDisplay} = 1;
 
