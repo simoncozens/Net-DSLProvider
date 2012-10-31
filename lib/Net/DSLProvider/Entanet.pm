@@ -628,6 +628,16 @@ sub book_appointment {
     return $appt;
 }
 
+=head2 poll
+
+    $enta->poll(token => '12345');
+
+Poll for an appointment slot or appointment confirmation 
+
+See get_appointments and book_appointment methods
+
+=cut
+
 sub poll {
     my ($self, %args) = @_;
     $self->_check_params(\%args, qw/token/);
@@ -714,12 +724,32 @@ sub get_blocked {
     return @{$response->{ADSLAccount}};
 }
 
+=head2 get_bt_faults
+
+    $enta->get_bt_faults();
+
+Returns a list of faults open with BT
+
+See Enta docs for params
+
+=cut
+
 sub get_bt_faults {
     my ($self, %args) = @_;
 
     my $response = $self->_make_request("GetBTFault", \%args);
     return if $response->{TotalResults} == 0;
 }
+
+=head2 heavy
+
+    $enta->heavy();
+
+Returns a list of heavy users
+
+See Enta docs for more details
+
+=cut
 
 sub heavy {
     my ($self, %args) = @_;
@@ -1478,6 +1508,14 @@ sub order {
              "service_id" => $response->{OurRef},
              "payment_code" => $response->{TelephonePaymentCode} );
 }
+
+=head2 llu_order
+
+    $enta->llu_order(...)
+
+Place an order for an LLU service. See Enta docs for details    
+
+=cut
 
 sub llu_order {
     my ($self, %args) = @_;
