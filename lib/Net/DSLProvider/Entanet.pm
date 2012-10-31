@@ -245,7 +245,7 @@ my %formats = (
     }
 );
 
-sub request_xml {
+sub _request_xml {
     my ($self, $method, $args) = @_;
 
     my $live = "Test";
@@ -321,7 +321,7 @@ sub _make_request {
 
     if ( $requesttype{$method} eq 'post' ) {
         push @{$ua->requests_redirectable}, 'POST';
-        my $xml = $self->request_xml($method, $data);
+        my $xml = $self->_request_xml($method, $data);
 
         warn $xml if $self->debug;
 

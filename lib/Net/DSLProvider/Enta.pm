@@ -115,7 +115,7 @@ my %formats = (
     } );
 
 
-sub request_xml {
+sub _request_xml {
     my ($self, $method, $args) = @_;
 
     if ( $args->{cli} && ( ! $args->{Telephone} ) ) {
@@ -186,7 +186,7 @@ sub _make_request {
     $url = ENDPOINT . "xml/AdslProductChange" . '.php' if $method eq "ProductChange";
     if ( $enta_xml_methods{$method} ) {     
         push @{$ua->requests_redirectable}, 'POST';
-        my $xml = $self->request_xml($method, $data);
+        my $xml = $self->_request_xml($method, $data);
 
         $body .= "--" . BOUNDARY . "\n";
         $body .= "Content-Disposition: form-data; name=\"userfile\"; filename=\"XML.data\"\n";
