@@ -156,7 +156,7 @@ sub request_xml {
     return $xml;
 }
 
-sub make_request {
+sub _make_request {
     my ($self, $method, $data) = @_;
     my $xml = $self->request_xml($method, $data);
     my $request = HTTP::Request->new(POST => ENDPOINT);
@@ -223,7 +223,7 @@ sub services_available {
 
     %args = ( %args, detailed => "Y", ordertype => "migrate" );
 
-    my $response = $self->make_request("availability", \%args);
+    my $response = $self->_make_request("availability", \%args);
 
     my %crd = ();
     while ( my $a = pop @{$response->{block}->{leadtimes}->{block}} ) {
@@ -282,7 +282,7 @@ sub modify {
     $self->_check_params(\%args, qw/service-id client-ref myref prod-id 
                         crd care-level inclusive-transfer test-mode / );
 
-    my $response = $self->make_request("modify", \%args);
+    my $response = $self->_make_request("modify", \%args);
 
     return $response->{a}->{"order_id"}->{content};
 }
@@ -303,7 +303,7 @@ sub change_password {
     my ($self, %args) = @_;
     $self->_check_params(\%args, qw/service-id password/);
 
-    my $response = $self->make_request("change_password", \%args);
+    my $response = $self->_make_request("change_password", \%args);
 
     return 1;
 }
@@ -325,7 +325,7 @@ Murphx documentation for details of the test result fields.
 sub woosh_response {
     my ($self, $id) = @_;
     die "You must provide the woosh-id parameter" unless $id;
-    my $response = $self->make_request("woosh_response", { "woosh-id" => $id });
+    my $response = $self->_make_request("woosh_response", { "woosh-id" => $id });
 
     my %results = ();
     foreach ( keys %{$response->{block}->{block}} ) {
@@ -358,7 +358,7 @@ The array elements are sorted by date with the most recent being first.
 sub woosh_list {
     my ($self, $id) = @_;
     die "You must provide the woosh-id parameter" unless $id;
-    my $response = $self->make_request("woosh_list", { "woosh-id" => $id });
+    my $response = $self->_make_request("woosh_list", { "woosh-id" => $id });
 
     my @list = ();
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
@@ -415,7 +415,7 @@ sub woosh_request_oneshot {
     $self->_check_params(\%args, qw/service-id fault-type has-worked 
                             disruptive fault-time /);
 
-    my $response = $self->make_request("woosh_request_oneshot", \%args);
+    my $response = $self->_make_request("woosh_request_oneshot", \%args);
 
     return $response->{a}->{"woosh_id"}->{content};
 }
@@ -445,7 +445,7 @@ sub order_eventlog_changes {
     my ($self, %args) = @_;
     $self->_check_params(\%args, qw/date/);
 
-    my $response = $self->make_request("order_eventlog_changes", \%args);
+    my $response = $self->_make_request("order_eventlog_changes", \%args);
 
     my @updates = ();
 
@@ -500,7 +500,7 @@ sub service_auth_log {
     my ($self, %args) = @_;
     $self->_check_params(\%args, qw/service-id rows/);
 
-    my $response = $self->make_request("service_auth_log", \%args);
+    my $response = $self->_make_request("service_auth_log", \%args);
 
     my @auth = ();
     if ( ref $response->{block} eq "ARRAY" ) {
@@ -559,7 +559,7 @@ sub service_session_log {
         if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_session_log", \%args);
+    my $response = $self->_make_request("service_session_log", \%args);
 
     my @sessions = ();
     if ( ref $response->{block} eq "ARRAY" ) {
@@ -631,7 +631,7 @@ sub service_usage_summary {
         if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_usage_summary", \%args);
+    my $response = $self->_make_request("service_usage_summary", \%args);
 
     my %usage = ();
     foreach ( keys %{$response->{block}->{a}} ) {
@@ -654,7 +654,7 @@ sub service_terminate_session {
     my ($self, $id) = @_;
     die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("service_terminate_session",
+    my $response = $self->_make_request("service_terminate_session",
         {"service-id" => $id});
 
     return 1;
@@ -685,7 +685,7 @@ sub cease {
         $data->{order}{$_} = $args{$_};
     }
 
-    my $response = $self->make_request("cease", $data);
+    my $response = $self->_make_request("cease", $data);
     return $response->{"order_id"}->{content};
 }
 
@@ -706,7 +706,7 @@ sub request_mac {
         if ( ! $args{$_} ) { die "You must provide the $_ parameter"; }
         }
 
-    my $response = $self->make_request("requestmac", \%args);
+    my $response = $self->_make_request("requestmac", \%args);
 
     return (
         mac => $response->{a}->{"mac"}->{content},
@@ -730,7 +730,7 @@ Returns a hash containing:
 sub service_status {
     my ($self, $id) = @_;
     die "You must provide the service-id parameter" unless $id;
-    my $response = $self->make_request("service_status", 
+    my $response = $self->_make_request("service_status", 
         { "service-id" => $id });
 
     my %status = ();
@@ -769,7 +769,7 @@ sub service_eventlog_history {
     die "You must provide the service-id parameter" unless $id;
     my @history = ();
 
-    my $response = $self->make_request("service_eventlog_history",
+    my $response = $self->_make_request("service_eventlog_history",
         {"service-id" => $id });
 
     if ( ref $response->{block}->{block} eq "ARRAY" ) {
@@ -818,7 +818,7 @@ sub service_eventlog_changes {
         if (!$args{$_}) { die "You must provide the $_ parameter"; }
     }
 
-    my $response = $self->make_request("service_eventlog_changes", \%args);
+    my $response = $self->_make_request("service_eventlog_changes", \%args);
 
     my @changes = ();
     if ( ref $response->{block}->{block} eq 'ARRAY' ) {
@@ -862,7 +862,7 @@ sub order_status {
     my ($self, $id) = @_;
     die "You must provide the order-id parameter" unless $id;
     
-    my $response = $self->make_request("order_status", { "order-id" => $id });
+    my $response = $self->_make_request("order_status", { "order-id" => $id });
 
     my %order = ();
     foreach (keys %{$response->{block}->{order}->{a}} ) {
@@ -905,7 +905,7 @@ sub service_view {
     my ($self, %args) = @_;
     die "You must provide the service-id parameter" unless $args{"service-id"};
     
-    my $response = $self->make_request("service_view", \%args);
+    my $response = $self->_make_request("service_view", \%args);
 
     my %actions = $self->service_actions(%args);
 
@@ -953,7 +953,7 @@ sub service_details {
 
     my $data = { detailed => 'Y', "service-id" => $args{"service-id"} };
 
-    my $response = $self->make_request("service_details", $data);
+    my $response = $self->_make_request("service_details", $data);
 
     my %details = ();
     foreach (keys %{$response->{block}->{a}} ) {
@@ -1007,7 +1007,7 @@ update in date sorted order. The hash keys are date, name and value.
 sub order_eventlog_history {
     my ($self, $order) = @_;
     return undef unless $order;
-    my $response = $self->make_request("order_eventlog_history", { "order-id" => $order });
+    my $response = $self->_make_request("order_eventlog_history", { "order-id" => $order });
 
     my @history = ();
 
@@ -1037,7 +1037,7 @@ sub services_overusage {
     my ($self, %args) = @_;
     die "You must provide the period parameter" unless $args{"period"};
 
-    my $response = $self->make_request("services_overusage", \%args);
+    my $response = $self->_make_request("services_overusage", \%args);
 
     my @services = ();
     if ( ref $response->{block} eq "ARRAY" ) {
@@ -1071,7 +1071,7 @@ sub speed_limit_status {
     my ($self, $id) = @_;
     die "You must provide the service-id parameter" unless $id;
 
-    my $response = $self->make_request("speed_limit_status",
+    my $response = $self->_make_request("speed_limit_status",
         {"service-id" => $id});
 
     if ( $response->{a}->{content} ) { return $response->{a}->{content}; }
@@ -1101,7 +1101,7 @@ sub speed_limit_enable {
         die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $response = $self->make_request("speed_limit_enable", \%args);
+    my $response = $self->_make_request("speed_limit_enable", \%args);
     return 1;
 }
 
@@ -1117,7 +1117,7 @@ sub speed_limit_disable {
     my ($self, %args) = @_;
     die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("speed_limit_disable", \%args);
+    my $response = $self->_make_request("speed_limit_disable", \%args);
     return 1;
 }
 
@@ -1133,7 +1133,7 @@ sub service_unsuspend {
     my ($self, %args) = @_;
     die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("service_unsuspend", \%args);
+    my $response = $self->_make_request("service_unsuspend", \%args);
     return 1;
 }
 
@@ -1152,7 +1152,7 @@ sub service_suspend {
         die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $response = $self->make_request("service_suspend", \%args);
+    my $response = $self->_make_request("service_suspend", \%args);
     return 1;
 }
 
@@ -1169,7 +1169,7 @@ sub walledgarden_status {
     my ($self, %args) = @_;
     die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("walledgarden_status", \%args);
+    my $response = $self->_make_request("walledgarden_status", \%args);
 
     return 1 if $response->{a}->{walledgarden}->{content} eq 'enabled';
     return undef;
@@ -1189,7 +1189,7 @@ sub walledgarden_enable {
         die "You must provide the $_ parameter" unless $args{$_};
     }
 
-    my $response = $self->make_request("walledgarden_enable", \%args);
+    my $response = $self->_make_request("walledgarden_enable", \%args);
     return 1;
 }
 
@@ -1205,7 +1205,7 @@ sub walledgarden_disable {
     my ($self, %args) = @_;
     die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("walledgarden_disable", \%args);
+    my $response = $self->_make_request("walledgarden_disable", \%args);
     return 1;
 }
 
@@ -1225,7 +1225,7 @@ sub change_carelevel {
     my ($self, %args) = @_;
     $self->_check_params( \%args );
 
-    my $response = $self->make_request("change_carelevel", \%args);
+    my $response = $self->_make_request("change_carelevel", \%args);
     return 1;
 }
 
@@ -1264,7 +1264,7 @@ sub service_actions {
 
     die "You must provide the service-id parameter" unless $args{"service-id"};
 
-    my $response = $self->make_request("service_actions", \%args);
+    my $response = $self->_make_request("service_actions", \%args);
 
     my %ret = ();
     foreach ( keys %{$response->{block}->{a}} ) {
@@ -1285,7 +1285,7 @@ sub product_details {
     my ($self, $id) = @_;
     die "You cannot must provide the product-id" unless $id;
 
-    my $response = $self->make_request("product_details",
+    my $response = $self->_make_request("product_details",
         { "product-id" => $id, "detailed" => 'Y' });
 
     my %a = ();
@@ -1308,7 +1308,7 @@ sub customer_details {
 
     die "You cannot call _get_customer_id without the service-id" unless $id;
 
-    my $response = $self->make_request("customer_details", 
+    my $response = $self->_make_request("customer_details", 
         { "service-id"=> $id, "detailed" => 'Y' });
 
     my %a = ();
@@ -1342,7 +1342,7 @@ sub case_new {
     $args{username} = $service{username};
     $args{cli} = $service{cli};
 
-    my $response = $self->make_request("case_new", \%args);
+    my $response = $self->_make_request("case_new", \%args);
 
 # This is not finished. I need to determine the correct part of $response to return
 
@@ -1361,7 +1361,7 @@ sub case_view {
     my ($self, %args) = @_;
     $self->_check_params(\%args, qw/case-id/);
 
-    my $response = $self->make_request("case_view", \%args);
+    my $response = $self->_make_request("case_view", \%args);
     
     my %case = ();
     foreach (keys %{$response->{block}->{a}}) {
@@ -1392,7 +1392,7 @@ sub case_search {
     my $args = join('|', keys %{$formats{case_search}});
     $self->_check_params(\%args, ($args));
 
-    my $response = $self->make_request("case_search", \%args);
+    my $response = $self->_make_request("case_search", \%args);
 
     my @cases = ();
 
@@ -1431,7 +1431,7 @@ sub case_history {
     my ( $self, %args ) = @_;
     $self->_check_params( \%args, qw/case-id/ );
 
-    my $response = $self->make_request( "case_history", \%args );
+    my $response = $self->_make_request( "case_history", \%args );
 
     my @cases = ();
 
@@ -1470,7 +1470,7 @@ sub case_update {
     my ( $self, %args ) = @_;
     $self->_check_params(\%args, qw/case-id priority reason/);
 
-    my $response = $self->make_request("case_update", \%args);
+    my $response = $self->_make_request("case_update", \%args);
 
     return 1;
 }
@@ -1488,7 +1488,7 @@ the same specification as returned by services_available
 sub regrade_options {
     my ($self, %args) = @_;
 
-    my $response = $self->make_request("modify_options", \%args);
+    my $response = $self->_make_request("modify_options", \%args);
 
     my %crd = ();
     my @options = ();
@@ -1591,9 +1591,9 @@ sub order {
 
     my $response = undef;
     if ( defined $data_in{"mac"} && defined $data_in{"losing-isp"} ) {
-        $response = $self->make_request("migrate", $data);
+        $response = $self->_make_request("migrate", $data);
     } else {
-        $response = $self->make_request("provide", $data);
+        $response = $self->_make_request("provide", $data);
     }
 
     my %order = ();
@@ -1659,7 +1659,7 @@ Returns:
 sub leadtime {
     my ($self, %args) = @_;
 
-    my $response = $self->make_request("leadtime", \%args);
+    my $response = $self->_make_request("leadtime", \%args);
 
     my %lead = ();
 
