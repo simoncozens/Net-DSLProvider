@@ -2,6 +2,7 @@ package Net::DSLProvider::Cerberus;
 use strict;
 use base 'Net::DSLProvider';
 use Net::DSLProvider::Cerberus::soap;
+use Carp;
 use Time::Piece;
 use Time::Seconds;
 use Date::Holidays::EnglandWales;
