@@ -124,7 +124,7 @@ my %formats = (
 );
 
 
-sub request_xml {
+sub _request_xml {
     my ($self, $method, $data) = @_;
     my $id = time.$$;
     my $xml = qq{<?xml version="1.0"?>
@@ -158,7 +158,7 @@ sub request_xml {
 
 sub _make_request {
     my ($self, $method, $data) = @_;
-    my $xml = $self->request_xml($method, $data);
+    my $xml = $self->_request_xml($method, $data);
     my $request = HTTP::Request->new(POST => ENDPOINT);
     $request->content_type('text/xml');
     $request->content($xml);
