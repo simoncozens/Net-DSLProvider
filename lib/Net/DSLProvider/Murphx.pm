@@ -1229,7 +1229,7 @@ sub change_carelevel {
     return 1;
 }
 
-=head2 change_carelevel
+=head2 care_level
 
     $murphx->carei_level( "service-id" -> 12345, "care-level" => "enhanced" );
 

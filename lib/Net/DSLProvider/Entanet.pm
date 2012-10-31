@@ -915,7 +915,7 @@ sub elevatedbestefforts {
     return $self->modifylinefeatures( %$data );
 }
 
-=head2 change_carelevel
+=head2 care_level
 
     $enta->carei_level( "service-id" -> "ADSL12345", "care-level" => "enhanced" );
 
