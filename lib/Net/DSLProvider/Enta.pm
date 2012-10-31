@@ -253,7 +253,7 @@ sub make_request {
     return $resp_o;
 }
 
-sub convert_input {
+sub _convert_input {
     my ($self, $method, $args) = @_;
     die "convert_input called without method or args hashref" unless $method && ref $args eq 'HASH';
 
@@ -582,9 +582,9 @@ sub elevatedbestefforts {
     return $self->modifylinefeatures( %$data );
 }
 
-=head2 change_carelevel
+=head2 care_level
 
-    $enta->carei_level( "service-id" -> "ADSL12345", "care-level" => "enhanced" );
+    $enta->care_level( "service-id" -> "ADSL12345", "care-level" => "enhanced" );
 
 Changes the care-level associated with a given service. 
 
@@ -802,7 +802,7 @@ sub cease {
 
     my $data = undef;
     if ( $args{'service-id'} || $args{'ref'} ) {
-        $data = $self->convert_input("CeaseADSLOrder" ,\%args);
+        $data = $self->_convert_input("CeaseADSLOrder" ,\%args);
     }
     else {
         my %adsl = $self->adslaccount(%args);
@@ -1118,7 +1118,7 @@ sub order {
     my $d = Time::Piece->strptime($args{"crd"}, "%F");
     $args{"crd"} = $d->dmy("/");
 
-    my $data = $self->convert_input("CreateADSLOrder", \%args);
+    my $data = $self->_convert_input("CreateADSLOrder", \%args);
 
     my $response = $self->make_request("CreateADSLOrder", $data);
 
@@ -1163,7 +1163,7 @@ sub product_change {
 
     $args{schedule} = "FirstAvailableDate";
 
-    my $data = $self->convert_input("ProductChange", \%args);
+    my $data = $self->_convert_input("ProductChange", \%args);
     my $response = $self->make_request("ProductChange", $data);
 
     return $response->{Response}->{OperationResponse}->{ProductChange}->{Results};
@@ -1273,7 +1273,7 @@ sub usage_history {
         $args{enddatetime} = $s->dmy('/') . ' ' . $s->strftime("%H:%M:%S");
     }
 
-    my $data = $self->convert_input("UsageHistory", \%args);
+    my $data = $self->_convert_input("UsageHistory", \%args);
 
     $data->{RawDisplay} = 1;
 
