@@ -1295,6 +1295,14 @@ sub product_details {
     return %a
 }
 
+=head2 customer_details
+
+    $murphx->customer_details($serviceId);
+
+Returns the customer details for a given service ID
+
+=cut
+
 sub customer_details {
     my ($self, $id) = @_;
 
