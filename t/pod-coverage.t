@@ -15,4 +15,8 @@ eval "use Pod::Coverage $min_pc";
 plan skip_all => "Pod::Coverage $min_pc required for testing POD coverage"
     if $@;
 
-all_pod_coverage_ok();
+pod_coverage_ok( "Net::DSLProvider::Enta", "Enta module is covered" );
+pod_coverage_ok( "Net::DSLProvider::Entanet", "Entanet module is covered" );
+pod_coverage_ok( "Net::DSLProvider::Murphx", "Murphx module is covered" );
+pod_coverage_ok( "Net::DSLProvider::Cerberus", "Cerberus module is covered" );
+

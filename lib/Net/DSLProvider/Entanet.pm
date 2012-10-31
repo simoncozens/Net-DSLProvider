@@ -354,11 +354,11 @@ sub _make_request {
         $req->content($body);
     }
 
-    $self->debug_dump($req) if $self->debug;
+    $self->_debug_dump($req) if $self->debug;
 
     $res = $ua->request($req);
     
-    $self->debug_dump($res->content) if $self->debug;
+    $self->_debug_dump($res->content) if $self->debug;
 
     die "Request for Enta method $method failed: " . $res->message if $res->is_error;
 
@@ -369,7 +369,7 @@ sub _make_request {
     # remove \r\n characters if Enta developers insert them - idiots!
     if ( $response =~ /^\r\n/ ) {
         $response = substr($res->content, 2);
-        $self->debug_dump($response) if $self->debug;
+        $self->_debug_dump($response) if $self->debug;
     }
 
     my $resp_o = XMLin($response, SuppressEmpty => 1);
@@ -395,7 +395,7 @@ sub _make_request {
 
     $recurse->($resp_o);
 
-    $self->debug_dump($resp_o) if $self->debug;
+    $self->_debug_dump($resp_o) if $self->debug;
 
     if ( $resp_o->{Response}->{OperationResponse} ) {
         return $resp_o->{Response}->{OperationResponse};
@@ -1916,7 +1916,7 @@ sub _get_ref_from_telephone {
     return $adsl{adslaccount}->{ourref};
 }
 
-sub debug_dump {
+sub _debug_dump {
     use Data::Dumper;
     warn Dumper \$_[1];
 }
