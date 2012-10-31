@@ -435,7 +435,7 @@ sub _convert_input {
     return $data;
 }
 
-sub serviceid {
+sub _serviceid {
     my ( $self, $args ) = @_;
     
     die "You must supply the service-id parameter" unless 
@@ -840,7 +840,7 @@ sub interleaving_status {
     my ( $self, %args ) = @_;
     $self->_check_params(\%args, qw/service-id|username|telephone|ref/);
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     my $response = $self->_make_request("GetInterleaving", $data);
 
     return $response->{Interleave};
@@ -861,7 +861,7 @@ sub interleaving {
     die "interleaving can only be 'Yes', 'No' or 'Auto'" unless
         $args{"interleaving"} =~ /(Yes|No|Auto)/;
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     $data->{"LineFeatures"}->{"Interleaving"} = $args{"interleaving"};
 
     return $self->modifylinefeatures( %$data );
@@ -882,7 +882,7 @@ sub stabilityoption {
     die "option can only be 'Standard', 'Stable', or 'Super Stable'" unless
         $args{"option"} =~ /(Standard|Stable|Super Stable)/;
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     $data->{"LineFeatures"}->{"StabilityOption"} = $args{"option"};
 
     return $self->modifylinefeatures( %$data );
@@ -906,7 +906,7 @@ sub elevatedbestefforts {
     die "option can only be 'Yes' or 'No'" unless
         $args{option} =~ /(Yes|No)/;
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
 
     $data->{"LineFeatures"}->{"ElevatedBestEfforts"} = $args{"option"};
     $data->{"LineFeatures"}->{"ElevatedBestEffortsFee"} = $args{"fee"}
@@ -956,7 +956,7 @@ sub enhanced_care {
 
     die "option can only be 'On' or 'Off'" unless $args{option} =~ /(On|Off)/;
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     my $ec = 4 if $args{option} eq 'On';
     $ec = 5 if $args{option} eq 'Off';
 
@@ -994,7 +994,7 @@ sub modifylinefeatures {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ("service-id|ref|telephone|username", "LineFeatures"));
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     $data->{"LineFeatures"} = $args{"LineFeatures"};
 
     my $response = $self->_make_request("ModifyLineFeatures", $data);
@@ -1189,7 +1189,7 @@ sub request_mac {
 
     %args = ( "ref" => $adsl{adslaccount}->{ourref} );
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     
     my $response = $self->_make_request("RequestMAC", $data );
 
@@ -1208,7 +1208,7 @@ sub auth_log {
     my ($self, %args) = @_;
     $self->_check_params(\%args);
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     
     my $response = $self->_make_request("LastRadiusLog", $data );
 
@@ -1241,7 +1241,7 @@ sub max_reports {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ("ref|telephone|username|service-id"));
     
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
 
     my $response = $self->_make_request("GetMaxReports", $data);
 
@@ -1379,7 +1379,7 @@ sub adslaccount {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ( "service-id|telephone|ref|username" ));
     
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
     
     my $response = $self->_make_request("AdslAccount", $data );
 
@@ -1534,7 +1534,7 @@ sub usage_summary {
     my ($self, %args) = @_;
     $self->_check_params(\%args, ("service-id|ref|username|telephone"));
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
 
     my $s = $args{year}."-".$args{month}."-1";
     my $start = Time::Piece->strptime($s, "%F");
@@ -1653,7 +1653,7 @@ Data returned per 10 minute interval for a day:
 sub usage_history_detail {
     my ($self, %args) = @_;
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
 
     if ( $args{"day"} ) {
         my $d = Time::Piece->strptime($args{"day"}, "%F");
@@ -1771,7 +1771,7 @@ sub connectionhistory {
         $data = { "username" => $adsl{adslaccount}->{username} };
     }
     else {
-        $data = $self->serviceid(\%args);
+        $data = $self->_serviceid(\%args);
     }
 
     $data->{days} = $args{days} if $args{days};
@@ -1848,7 +1848,7 @@ sub case_search {
     my ( $self, %args ) = @_;
     $self->_check_params(\%args, qw/ref|username|service-id/);
 
-    my $data = $self->serviceid(\%args);
+    my $data = $self->_serviceid(\%args);
 
     my $response = $self->_make_request("GetNotes", $data);
 
